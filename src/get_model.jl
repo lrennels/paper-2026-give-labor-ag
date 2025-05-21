@@ -1,10 +1,10 @@
 using Mimi, MimiGIVE, Query, CSVFiles, DataFrames
 
-include("components/ag.jl")
-include("components/labor.jl")
+include("utils.jl")
 
 """
-    get_model(; agriculture_pctile::String = "mid",
+    get_model(; agriculture_pctile::Symbol = :mid,
+                agrish_category::Symbol = :crops,
                 socioeconomics_source::Symbol = :RFF,
                 SSP_scenario::Union{Nothing, String} = nothing,       
                 RFFSPsample::Union{Nothing, Int} = nothing,
@@ -12,9 +12,12 @@ include("components/labor.jl")
 
 Get a model with the given argument settings
 
-- agriculture_pctile (default mid) - specify the `agriculture_pctile` input parameter
-    as one of `["low", "mid", "high"]`, indicating which percentile to use. These
+- agriculture_pctile (default :mid) - specify the `agriculture_pctile` input parameter
+    as one of `[:low, :mid, :high]`, indicating which percentile to use. These
     map to low (2.5), mid (50.0) and high (97.5).
+
+- agrish_category (default :crops) = specify the option for determining the source of 
+    agriculture share as one of :crops and :agriculture 
 
 - socioeconomics_source (default :RFF) - The options are :RFF, which uses data from 
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
@@ -42,7 +45,8 @@ Get a model with the given argument settings
     https://github.com/rffscghg/MimiRFFSPs.jl.
 
 """
-function get_model(;    agriculture_pctile::String = "mid",
+function get_model(;    agriculture_pctile::Symbol = :mid,
+                        agrish_category::Symbol = :crops,
                         socioeconomics_source::Symbol = :RFF,
                         SSP_scenario::Union{Nothing, String} = nothing,       
                         RFFSPsample::Union{Nothing, Int} = nothing,
@@ -51,13 +55,20 @@ function get_model(;    agriculture_pctile::String = "mid",
     # Settings 
     damages_first = 2020
     
+    # Keys
+    region_crosswalk = load(joinpath(@__DIR__, "..", "data", "region_crosswalk.csv")) |> DataFrame
+
     # Obtain original GIVE model
-    m = MimiGIVE.get_model()
+    m = MimiGIVE.get_model(;
+                            socioeconomics_source = socioeconomics_source,
+                            SSP_scenario = SSP_scenario,
+                            RFFSPsample = RFFSPsample
+                        )
 
     # Remove Agriculture components and regional aggregators
     delete!(m, :Agriculture)
     delete!(m, :Agriculture_aggregator_pop90)
-    delete!(m, :Agriculture_aggregator_gdp90)
+    delete!(m, :Agriculture_aggregator_gdp2017)
     delete!(m, :Agriculture_aggregator_population)
     delete!(m, :Agriculture_aggregator_gdp)
     delete!(m, :AgricultureDamagesDisaggregator)
@@ -76,9 +87,29 @@ function get_model(;    agriculture_pctile::String = "mid",
     # Labor
     # --------------------------------------------------------------------------
 
-    labor_gtap_df = load()
-    update_param!(m, :Labor, :gtap_df, labor_gtap_df)
+    # GTAP impact fractions
+    labor_gtap_df = DataFrame()
+    for iso3 in dim_keys(m, :country), gcm in dim_keys(m, :gcm), temp in collect(1.:0.5:4.)
+        append!(labor_gtap_df, DataFrame(:iso3 => iso3, :gcm => gcm, :temp => temp))
+    end
+    labor_gtap_df = innerjoin(labor_gtap_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
 
+    filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202505_Plants_People_v2.csv")
+    impact = get_labor_gtap_df(filepath)
+
+    labor_gtap_df = innerjoin(labor_gtap_df, impact, on = [:gtap, :gcm, :temp]) # join agriculture share data
+    select!(labor_gtap_df, Not(:gtap))
+
+    labor_gtap = Array{Float64}(undef, length(dim_keys(m, :country)), 7, length(dim_keys(m, :gcm)))
+    for (i, gcm) in enumerate(dim_keys(m, :gcm))
+        df = labor_gtap_df |> @filter(_.gcm == gcm) |> DataFrame
+        select!(df, Not(:gcm))
+        df = unstack(df, :temp, :impact_fraction)
+        labor_gtap[:, :, i] = df[!, 2:end] |> Matrix
+    end
+    update_param!(m, :Labor, :gtap_impacts, labor_gtap)
+
+    # Connections
     connect_param!(m, :Labor => :population, :Socioeconomic => :population)
     connect_param!(m, :Labor => :gdp, :Socioeconomic => :gdp)
     connect_param!(m, :Labor => :temp, :temperature => :T) # temperature from FaIR so relative to start year of 1750
@@ -87,9 +118,37 @@ function get_model(;    agriculture_pctile::String = "mid",
     # Agriculture
     # --------------------------------------------------------------------------
 
-    ag_gtap_df = load()
-    update_param!(m, :Agriculture, :gtap_df, ag_gtap_df)
+    # Agriculture share
+    agrish0_df = DataFrame(:iso3 => dim_keys(m, :country)) # start with the country list
+    agrish0_df = innerjoin(agrish0_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
 
+    shares = load(joinpath(@__DIR__, "..", "data", "202505_SectorShare_v2.csv")) |> DataFrame
+    agrish0_df = innerjoin(agrish0_df, shares, on = :gtap) # join agriculture share data
+
+    update_param!(m, :Agriculture, :agrish0, agrish0_df[!, agrish_category])
+
+    # Population and GDP in 2017 for agrish basis
+    # TODO
+    # update_param!(m, :Agriculture, :gdp2017, gdp2017)
+    # update_param!(m, :Agriculture, :population2017, population2017)
+
+    # GTAP impact fractions
+    ag_gtap_df = DataFrame()
+    for iso3 in dim_keys(m, :country), temp in collect(1.:0.5:4.)
+        append!(ag_gtap_df, DataFrame(:iso3 => iso3, :temp => temp))
+    end
+    ag_gtap_df = innerjoin(ag_gtap_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
+
+    filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202505_Plants_People_v2.csv")
+    impact = get_ag_gtap_df(filepath, agriculture_pctile)
+    ag_gtap_df = innerjoin(ag_gtap_df, impact, on = [:gtap, :temp]) # join agriculture share data
+
+    select!(ag_gtap_df, Not(:gtap))
+    ag_gtap_df = unstack(ag_gtap_df, :temp, :impact_fraction)
+    ag_gtap = ag_gtap_df[!, 2:end] |> Matrix
+    update_param!(m, :Agriculture, :gtap_impacts, ag_gtap)
+
+    # Connections
     connect_param!(m, :Agriculture => :population, :Socioeconomic => :population)
     connect_param!(m, :Agriculture => :gdp, :Socioeconomic => :gdp)
     connect_param!(m, :Agriculture => :temp, :temperature => :T) # temperature from FaIR so relative to start year of 1750

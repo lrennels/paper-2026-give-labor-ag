@@ -1,0 +1,185 @@
+﻿iso3,fundregion,country,gtap
+ABW,SIS,Aruba,xcb
+AFG,SAS,Afghanistan,afg
+AGO,SSA,Angola,xac
+ALB,EEU,Albania,alb
+ARE,MDE,United Arab Emirates,are
+ARG,LAM,Argentina,arg
+ARM,FSU,Armenia,arm
+AUS,ANZ,Australia,aus
+AUT,WEU,Austria,aut
+AZE,FSU,Azerbaijan,aze
+BDI,SSA,Burundi,xec
+BEL,WEU,Belgium,bel
+BEN,SSA,Benin,ben
+BFA,SSA,Burkina Faso,bfa
+BGD,SAS,Bangladesh,bgd
+BGR,EEU,Bulgaria,bgr
+BHR,MDE,Bahrain,bhr
+BHS,SIS,Bahamas,xcb
+BIH,EEU,Bosnia and Herzegovina,xer
+BLR,FSU,Belarus,blr
+BLZ,CAM,Belize,xca
+BOL,LAM,Bolivia,bol
+BRA,LAM,Brazil,bra
+BRB,SIS,Barbados,xcb
+BRN,SEA,Brunei,brn
+BTN,SAS,Bhutan,xsa
+BWA,SSA,Botswana,bwa
+CAF,SSA,Central African Republic,caf
+CAN,CAN,Canada,can
+CHE,WEU,Switzerland,che
+CHL,LAM,Chile,chl
+CHN,CHI,China,chn
+CIV,SSA,Côte d'Ivoire,civ
+CMR,SSA,Cameroon,cmr
+COD,SSA,"Congo, the Democratic Republic of the",cod
+COG,SSA,Congo,cog
+COL,LAM,Colombia,col
+COM,SIS,Comoros,com
+CPV,SSA,Cape Verde,xwf
+CRI,CAM,Costa Rica,cri
+CUB,SIS,Cuba,xcb
+CYP,WEU,Cyprus,cyp
+CZE,EEU,Czech Republic,cze
+DEU,WEU,Germany,deu
+DJI,SSA,Djibouti,xec
+DNK,WEU,Denmark,dnk
+DOM,SIS,Dominican Republic,dom
+DZA,MAF,Algeria,dza
+ECU,LAM,Ecuador,ecu
+EGY,MAF,Egypt,egy
+ERI,SSA,Eritrea,xec
+ESP,WEU,Spain,esp
+EST,FSU,Estonia,est
+ETH,SSA,Ethiopia,eth
+FIN,WEU,Finland,fin
+FJI,SIS,Fiji,xoc
+FRA,WEU,France,fra
+GAB,SSA,Gabon,gab
+GBR,WEU,United Kingdom,gbr
+GEO,FSU,Georgia,geo
+GHA,SSA,Ghana,gha
+GIN,SSA,Guinea,gin
+GMB,SSA,Gambia,xwf
+GNB,SSA,Guinea-Bissau,xwf
+GNQ,SSA,Equatorial Guinea,gnq
+GRC,WEU,Greece,grc
+GTM,CAM,Guatemala,gtm
+GUY,LAM,Guyana,xsm
+HKG,CHI,Hong Kong,hkg
+HND,CAM,Honduras,hnd
+HRV,EEU,Croatia,hrv
+HTI,SIS,Haiti,hti
+HUN,EEU,Hungary,hun
+IDN,SEA,Indonesia,idn
+IND,SAS,India,ind
+IRL,WEU,Ireland,irl
+IRN,MDE,"Iran, Islamic Republic of",irn
+IRQ,MDE,Iraq,irq
+ISL,WEU,Iceland,xef
+ISR,MDE,Israel,isr
+ITA,WEU,Italy,ita
+JAM,SIS,Jamaica,jam
+JOR,MDE,Jordan,jor
+JPN,JPK,Japan,jpn
+KAZ,FSU,Kazakhstan,kaz
+KEN,SSA,Kenya,ken
+KGZ,FSU,Kyrgyzstan,kgz
+KHM,SEA,Cambodia,khm
+KOR,JPK,"Korea, Republic of",kor
+KWT,MDE,Kuwait,kwt
+LAO,SEA,Lao People's Democratic Republic,lao
+LBN,MDE,Lebanon,lbn
+LBR,SSA,Liberia,xwf
+LBY,MAF,Libya,xnf
+LCA,SIS,Saint Lucia,xcb
+LKA,SAS,Sri Lanka,lka
+LSO,SSA,Lesotho,xsc
+LTU,FSU,Lithuania,ltu
+LUX,WEU,Luxembourg,lux
+LVA,FSU,Latvia,lva
+MAC,CHI,Macao,xea
+MAR,MAF,Morocco,mar
+MDA,FSU,"Moldova, Republic of",xee
+MDG,SSA,Madagascar,mdg
+MDV,SIS,Maldives,xsa
+MEX,CAM,Mexico,mex
+MKD,EEU,"Macedonia, the former Yugoslav Republic of",xer
+MLI,SSA,Mali,mli
+MLT,WEU,Malta,mlt
+MMR,SEA,Burma,xse
+MNE,EEU,Montenegro,xer
+MNG,CHI,Mongolia,mng
+MOZ,SSA,Mozambique,moz
+MRT,SSA,Mauritania,xwf
+MUS,SIS,Mauritius,mus
+MWI,SSA,Malawi,mwi
+MYS,SEA,Malaysia,mys
+NAM,SSA,Namibia,nam
+NCL,SIS,New Caledonia,xoc
+NER,SSA,Niger,ner
+NGA,SSA,Nigeria,nga
+NIC,CAM,Nicaragua,nic
+NLD,WEU,Netherlands,nld
+NOR,WEU,Norway,nor
+NPL,SAS,Nepal,npl
+NZL,ANZ,New Zealand,nzl
+OMN,MDE,Oman,omn
+PAK,SAS,Pakistan,pak
+PAN,CAM,Panama,pan
+PER,LAM,Peru,per
+PHL,SEA,Philippines,phl
+PNG,SEA,Papua New Guinea,xoc
+POL,EEU,Poland,pol
+PRI,SIS,Puerto Rico,pri
+PRT,WEU,Portugal,prt
+PRY,LAM,Paraguay,pry
+PSE,MDE,"Palestinian Territory, Occupied",pse
+PYF,SIS,French Polynesia,xoc
+QAT,MDE,Qatar,qat
+ROU,EEU,Romania,rou
+RUS,FSU,Russia,rus
+RWA,SSA,Rwanda,rwa
+SAU,MDE,Saudi Arabia,sau
+SDN,SSA,Sudan,sdn
+SEN,SSA,Senegal,sen
+SGP,SEA,Singapore,sgp
+SLB,SIS,Solomon Islands,xoc
+SLE,SSA,Sierra Leone,xwf
+SLV,CAM,El Salvador,slv
+SOM,SSA,Somalia,xec
+SRB,EEU,Serbia,srb
+STP,SIS,Sao Tome and Principe,xac
+SUR,LAM,Suriname,xsm
+SVK,EEU,Slovakia,svk
+SVN,EEU,Slovenia,svn
+SWE,WEU,Sweden,swe
+SWZ,SSA,Swaziland,swz
+SYR,MDE,Syrian Arab Republic,syr
+TCD,SSA,Chad,tcd
+TGO,SSA,Togo,tgo
+THA,SEA,Thailand,tha
+TJK,FSU,Tajikistan,tjk
+TKM,FSU,Turkmenistan,xsu
+TLS,SEA,Timor-Leste,xse
+TON,SIS,Tonga,xoc
+TTO,SIS,Trinidad and Tobago,tto
+TUN,MAF,Tunisia,tun
+TUR,MDE,Turkey,tur
+TWN,SEA,Taiwan,xoc
+TZA,SSA,"Tanzania, United Republic of",tza
+UGA,SSA,Uganda,uga
+UKR,FSU,Ukraine,ukr
+URY,LAM,Uruguay,ury
+USA,USA,United States,usa
+UZB,FSU,Uzbekistan,uzb
+VCT,SIS,Saint Vincent & the Grenadines,xcb
+VEN,LAM,Venezuela,ven
+VNM,SEA,Viet Nam,vnm
+VUT,SIS,Vanuatu,xoc
+WSM,SIS,Samoa,xoc
+YEM,MDE,Yemen,xws
+ZAF,SSA,South Africa,zaf
+ZMB,SSA,Zambia,zmb
+ZWE,SSA,Zimbabwe,zwe
