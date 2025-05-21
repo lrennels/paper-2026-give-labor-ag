@@ -1,7 +1,5 @@
 using Mimi, MimiGIVE, Query, CSVFiles, DataFrames
 
-include("utils.jl")
-
 """
     get_model(; agriculture_pctile::Symbol = :mid,
                 agrish_category::Symbol = :crops,
@@ -51,7 +49,7 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
                         SSP_scenario::Union{Nothing, String} = nothing,       
                         RFFSPsample::Union{Nothing, Int} = nothing,
                 )
-        
+
     # Settings 
     damages_first = 2020
     
@@ -68,7 +66,7 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     # Remove Agriculture components and regional aggregators
     delete!(m, :Agriculture)
     delete!(m, :Agriculture_aggregator_pop90)
-    delete!(m, :Agriculture_aggregator_gdp2017)
+    delete!(m, :Agriculture_aggregator_gdp90)
     delete!(m, :Agriculture_aggregator_population)
     delete!(m, :Agriculture_aggregator_gdp)
     delete!(m, :AgricultureDamagesDisaggregator)
@@ -77,6 +75,7 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
 
     # Set new dimensions
     dimension_gcm = load(joinpath(@__DIR__, "..", "data", "dimension_gcm.csv")) |> DataFrame
+    dimension_gcm.GCM[1] == "model_ensemble" || error("The first element of the GCM dimension should be 'modeL_ensemble', currently it is $(dimension_gcm.GCM[1]).")
     set_dimension!(m, :gcm, dimension_gcm.GCM)
 
     # Add two new components
@@ -105,6 +104,11 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
         df = labor_gtap_df |> @filter(_.gcm == gcm) |> DataFrame
         select!(df, Not(:gcm))
         df = unstack(df, :temp, :impact_fraction)
+
+        # some checks on dimensions
+        all(df.iso3 .== dim_keys(m, :country)) || error("The labor gtap dataframe iso3 row order does not match the country dimension keys.")
+        all(names(df)[2:end] .== string.(collect(1.:0.5:4.))) || error("The labor gtap dataframe column order does not match the temperature keys.")
+
         labor_gtap[:, :, i] = df[!, 2:end] |> Matrix
     end
     update_param!(m, :Labor, :gtap_impacts, labor_gtap)
@@ -145,6 +149,11 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
 
     select!(ag_gtap_df, Not(:gtap))
     ag_gtap_df = unstack(ag_gtap_df, :temp, :impact_fraction)
+
+    # some checks on dimensions
+    all(ag_gtap_df.iso3 .== dim_keys(m, :country)) || error("The ag gtap dataframe iso3 row order does not match the country dimension keys.")
+    all(names(ag_gtap_df)[2:end] .== string.(collect(1.:0.5:4.))) || error("The ag gtap dataframe column order does not match the temperature keys.")
+
     ag_gtap = ag_gtap_df[!, 2:end] |> Matrix
     update_param!(m, :Agriculture, :gtap_impacts, ag_gtap)
 
@@ -153,4 +162,5 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     connect_param!(m, :Agriculture => :gdp, :Socioeconomic => :gdp)
     connect_param!(m, :Agriculture => :temp, :temperature => :T) # temperature from FaIR so relative to start year of 1750
 
+    return m
 end

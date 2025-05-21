@@ -1,6 +1,5 @@
 using Interpolations, DataFrames, CSVFiles, Query
 
-# TODO we should revisit this
 """
     linear_interpolate(values::AbstractArray, original_domain::AbstractArray, new_domain::Union{AbstractArray, Number})
     
@@ -25,13 +24,13 @@ end
 Process the GTAP output into ag_gtap_df for model input.
 """
 function get_ag_gtap_df(filepath::String, agriculture_pctile::Symbol)
-
-    if agriculture_pctile == :mid
+    
+    if agriculture_pctile == :low
+        pctile_value = 0.025
+    elseif agriculture_pctile == :mid
         pctile_value = 0.5
     elseif agriculture_pctile == :high
         pctile_value = 0.975
-    elseif agriculture_pctile == :low
-        pctile_value = 0.025
     else
         error("The agriculture_pctile argument must be one of :low (0.025), :mid (0.5) or :high (0.975)")
     end
