@@ -73,6 +73,14 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     delete!(m, :Damages_RegionAggregatorSum)
     delete!(m, :regional_netconsumption)
 
+    # Replace GIVE Damage Aggrgator with new one including labor and removing
+    # some unneeded intermediates
+    replace!(m, :DamageAggregator => DamageAggregator)
+    
+    # Need to set this damage aggregator to run from 2020 to 2300, currently picks up
+    # 1750 to 2300 from replace!
+    Mimi.set_first_last!(m, :DamageAggregator, first=2020);
+
     # Set new dimensions
     dimension_gcm = load(joinpath(@__DIR__, "..", "data", "dimension_gcm.csv")) |> DataFrame
     dimension_gcm.GCM[1] == "model_ensemble" || error("The first element of the GCM dimension should be 'modeL_ensemble', currently it is $(dimension_gcm.GCM[1]).")
@@ -161,6 +169,13 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     connect_param!(m, :Agriculture => :population, :Socioeconomic => :population)
     connect_param!(m, :Agriculture => :gdp, :Socioeconomic => :gdp)
     connect_param!(m, :Agriculture => :temp, :temperature => :T) # temperature from FaIR so relative to start year of 1750
+
+    # --------------------------------------------------------------------------    
+    # Damage Aggregator
+    # --------------------------------------------------------------------------
+
+    connect_param!(m, :DamageAggregator => :damage_ag, :Agriculture => :agcost)
+    connect_param!(m, :DamageAggregator => :damage_labor, :Labor => :laborcost)
 
     return m
 end
