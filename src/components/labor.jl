@@ -18,10 +18,10 @@ using Mimi
     laborcost = Variable(index=[time,country], unit="billion US\$2005/yr")
 
     function run_timestep(p,v,d,t)
-        for c in d.countries
+        for c in d.country
 
             # Interpolate using the seven gtap welfare points with the additional origin (0,0) point
-            impact = linear_interpolate([0, p.gtap_impacts[c, :, gcm]...], collect(0:0.5:4), p.temp[t])
+            impact = linear_interpolate([0, p.gtap_impacts[c, :, p.gcm]...], [0., collect(1:0.5:4)...], p.temp[t])
             v.laborloss_gtap_frac[t, c] = -1 * impact # take the negative to go from impact to loss
 
             # Calculate total cost for the labor sector based on the fractional loss

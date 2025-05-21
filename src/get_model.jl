@@ -72,6 +72,7 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     delete!(m, :AgricultureDamagesDisaggregator)
     delete!(m, :Damages_RegionAggregatorSum)
     delete!(m, :regional_netconsumption)
+    delete!(m, :RegionalPerCapitaGDP)
 
     # Replace GIVE Damage Aggrgator with new one including labor and removing
     # some unneeded intermediates

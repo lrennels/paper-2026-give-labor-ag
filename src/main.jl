@@ -14,5 +14,3 @@ include("get_model.jl")
 # advanced features
 include("mcs.jl")
 include("scc.jl")
-
-# run

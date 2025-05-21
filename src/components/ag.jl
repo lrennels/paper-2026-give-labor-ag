@@ -22,7 +22,7 @@ using Mimi
     agcost = Variable(index=[time,country], unit="billion US\$2005/yr")
 
     function run_timestep(p,v,d,t)
-        for c in d.countries
+        for c in d.country
             
             ypc = (1_000 * p.gdp[t,c]) / p.population[t,c] # USD per person
             ypc90 = (1_000 * p.gdp2017[c]) / p.pop90[c] # USD per person
@@ -30,7 +30,7 @@ using Mimi
             v.agrish[t, c] = p.agrish0[c] * (ypc / ypc90)^(-p.agel)
 
             # Interpolate using the seven gtap welfare points with the additional origin (0,0) point
-            impact = linear_interpolate([0, p.gtap_impacts[c, :]...], collect(0:0.5:4), p.temp[t])
+            impact = linear_interpolate([0, p.gtap_impacts[c, :]...], [0., collect(1:0.5:4)...], p.temp[t])
             v.agloss_gtap_frac[t, c] = -1 * impact # take the negative to go from impact to loss
 
             # Calculate total cost for the ag sector based on the fractional loss
