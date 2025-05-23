@@ -5,9 +5,8 @@ using Mimi
 @defcomp Agriculture begin
 
     # Parameters
-    gdp2017 = Parameter(index=[time], unit="billion US\$2005/yr")
+    ypc90 = Parameter(index=[time, country], unit="US\$2005/yr/person")
     gdp = Parameter(index=[time, country], unit="billion US\$2005/yr")
-    population2017 = Parameter(index=[time], unit = "million")
     population = Parameter(index=[time, country], unit = "million")
 
     agrish0 = Parameter(index=[country]) # initial share in 2017
@@ -24,10 +23,7 @@ using Mimi
     function run_timestep(p,v,d,t)
         for c in d.country
             
-            ypc = (1_000 * p.gdp[t,c]) / p.population[t,c] # USD per person
-            ypc90 = (1_000 * p.gdp2017[c]) / p.pop90[c] # USD per person
-            
-            v.agrish[t, c] = p.agrish0[c] * (ypc / ypc90)^(-p.agel)
+            v.agrish[t, c] = p.agrish0[c] * (ypc / p.ypc90[c])^(-p.agel)
 
             # Interpolate using the seven gtap welfare points with the additional origin (0,0) point
             impact = linear_interpolate([0, p.gtap_impacts[c, :]...], [0., collect(1:0.5:4)...], p.temp[t])
