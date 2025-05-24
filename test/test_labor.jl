@@ -1,4 +1,4 @@
-using Mimi, VegaLite, StatsBase
+using Mimi, VegaLite, StatsBase, Dates
 
 output_dir = joinpath(@__DIR__, "output")
 mkpath(output_dir)
@@ -6,46 +6,53 @@ mkpath(output_dir)
 # Load all functions
 include(joinpath(@__DIR__, "..", "src", "main.jl"))
 
-# GCM options
+# Options
 gcms = (load(joinpath(@__DIR__, "..", "data", "dimension_gcm.csv")) |> DataFrame).GCM
+ssps = ["SSP126", "SSP245", "SSP370", "SSP585"]
 
 # Run model
-laborloss_gtap_frac = DataFrame()
-laborcost = DataFrame()
-T = DataFrame()
+for ssp in ssps
 
-for (i, gcm) in enumerate(gcms)
+    laborloss_gtap_frac = DataFrame()
+    laborcost = DataFrame()
+    T = DataFrame()
 
-    println("Running gcm $gcm and saving labor variables.")
+    for (i, gcm) in enumerate(gcms)
 
-    m = get_model()
-    update_param!(m, :Labor, :gcm, i)
-    run(m)
+        m = get_model(; socioeconomics_source = :SSP, SSP_scenario = ssp)
+        update_param!(m, :Labor, :gcm, i)
+        run(m)
 
-    # labor loss fraction
-    df = getdataframe(m, :Labor, :laborloss_gtap_frac) |> @filter(_.time > 2019) |> DataFrame
-    insertcols!(df, :gcm => gcm)
-    append!(laborloss_gtap_frac, df)    
+        # labor loss fraction
+        df = getdataframe(m, :Labor, :laborloss_gtap_frac) |> @filter(_.time > 2019) |> DataFrame
+        insertcols!(df, :gcm => gcm)
+        append!(laborloss_gtap_frac, df)    
 
-    # labor cost
-    df = getdataframe(m, :Labor, :laborcost) |> @filter(_.time > 2019) |> DataFrame
-    insertcols!(df, :gcm => gcm)
-    append!(laborcost, df) 
+        # labor cost
+        df = getdataframe(m, :Labor, :laborcost) |> @filter(_.time > 2019) |> DataFrame
+        insertcols!(df, :gcm => gcm)
+        append!(laborcost, df) 
 
-    # T
-    if i == 1 # just do this once
-        df = getdataframe(m, :Labor, :temp)
-        append!(T, df) 
+        # T
+        if i == 1 # just do this once
+            df = getdataframe(m, :Labor, :temp)
+            append!(T, df) 
+        end
     end
+
+    # Join temperature
+    laborloss_gtap_frac = innerjoin(laborloss_gtap_frac, T, on = [:time])
+    laborcost = innerjoin(laborcost, T, on = [:time])
+
+    # Save CSVs
+    laborloss_gtap_frac |> save(joinpath(output_dir, "laborloss_gtap_frac_$ssp.csv"))
+    laborcost |> save(joinpath(output_dir, "laborcost_$ssp.csv"))
+
 end
 
-# Join temperature
-laborloss_gtap_frac = innerjoin(laborloss_gtap_frac, T, on = [:time])
-laborcost = innerjoin(laborcost, T, on = [:time])
-
-# Save CSVs
-laborloss_gtap_frac |> save(joinpath(output_dir, "laborloss_gtap_frac.csv"))
-laborcost |> save(joinpath(output_dir, "laborcost.csv"))
+# Load DataFrames for Graphs
+laborloss_gtap_frac = load(joinpath(output_dir, "laborloss_gtap_frac_SSP245.csv")) |> DataFrame
+laborcost = load(joinpath(output_dir, "laborcost_SSP245.csv")) |> DataFrame
 
 # Labor Loss Fraction
 n = 10_000
@@ -98,3 +105,26 @@ laborcost |>
         width = 500, 
         height = 250
     ) |> save(joinpath(output_dir, "laborcost_model_ensemble.png"), ppi = 300)
+
+# By SSP
+df = DataFrame()
+for ssp in ssps
+    df_ssp = load(joinpath(output_dir, "laborcost_$ssp.csv")) |> 
+        @filter(_.gcm == "model_ensemble" && _.time <= 2100) |>
+        DataFrame
+    insertcols!(df_ssp, :ssp => ssp)
+    append!(df, df_ssp)
+end
+
+df.time = Date.(df.time)
+df |> 
+    #@filter(_.country == "USA") |>
+    @vlplot(
+        title = ["Labor Sector Costs by SSP"; "Model Ensemble only, Colored by SSP"],
+        mark = {:circle, size = 10.},
+        color = {"ssp:n"},
+        x = {"time:t", title = "Time"},
+        y = {"laborcost", title = "Labor Cost (billions 2005 USD)"}, 
+        width = 500, 
+        height = 500
+    ) |> save(joinpath(output_dir, "laborcost_model_ensemble_by_ssp.png"), ppi = 300)

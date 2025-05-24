@@ -1,11 +1,14 @@
-using Mimi, MimiGIVE, Query, CSVFiles, DataFrames
+using Mimi, MimiGIVE, Query, CSVFiles, DataFrames, Parquet
+
+# (10/25/2021) BEA Table 1.1.9, line 1 GDP annual values as linked here: https://apps.bea.gov/iTable/iTable.cfm?reqid=19&step=3&isuri=1&select_all_years=0&nipa_table_list=13&series=a&first_year=2005&last_year=2020&scale=-99&categories=survey&thetable=
+const pricelevel_2011_to_2005 = 87.504/98.164
 
 """
     get_model(; agriculture_pctile::Symbol = :mid,
-                agrish_category::Symbol = :crops,
+                agrish_category::Symbol = :agriculture,
                 socioeconomics_source::Symbol = :RFF,
                 SSP_scenario::Union{Nothing, String} = nothing,       
-                RFFSPsample::Union{Nothing, Int} = nothing,
+                RFFSPsample::Union{Nothing, Int} = 6546,
             )
 
 Get a model with the given argument settings
@@ -14,7 +17,7 @@ Get a model with the given argument settings
     as one of `[:low, :mid, :high]`, indicating which percentile to use. These
     map to low (2.5), mid (50.0) and high (97.5).
 
-- agrish_category (default :crops) = specify the option for determining the source of 
+- agrish_category (default :agriculture) = specify the option for determining the source of 
     agriculture share as one of :crops and :agriculture 
 
 - socioeconomics_source (default :RFF) - The options are :RFF, which uses data from 
@@ -40,14 +43,16 @@ Get a model with the given argument settings
 
 - RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
     the sample for which to run the RFF SP. See the RFFSPs component here: 
-    https://github.com/rffscghg/MimiRFFSPs.jl.
+    https://github.com/rffscghg/MimiRFFSPs.jl. This will default to the same 
+    default run (6546) as the RFFSPs component, and is used for the default ypc2017
+    parameter in the agriculture component.
 
 """
 function get_model(;    agriculture_pctile::Symbol = :mid,
                         agrish_category::Symbol = :crops,
                         socioeconomics_source::Symbol = :RFF,
                         SSP_scenario::Union{Nothing, String} = nothing,       
-                        RFFSPsample::Union{Nothing, Int} = nothing,
+                        RFFSPsample::Union{Nothing, Int} = 6546,
                 )
 
     # Settings 
@@ -64,19 +69,15 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
                         )
 
     # Remove Agriculture components and regional aggregators
-    delete!(m, :Agriculture)
-    delete!(m, :Agriculture_aggregator_pop90)
-    delete!(m, :Agriculture_aggregator_gdp90)
-    delete!(m, :Agriculture_aggregator_population)
-    delete!(m, :Agriculture_aggregator_gdp)
-    delete!(m, :AgricultureDamagesDisaggregator)
-    delete!(m, :Damages_RegionAggregatorSum)
-    delete!(m, :regional_netconsumption)
-    delete!(m, :RegionalPerCapitaGDP)
+    for c in [:Agriculture, :Agriculture_aggregator_pop90, :Agriculture_aggregator_gdp90,
+            :Agriculture_aggregator_population, :Agriculture_aggregator_gdp, :AgricultureDamagesDisaggregator,
+            :Damages_RegionAggregatorSum, :regional_netconsumption, :RegionalPerCapitaGDP]
+        Mimi.has_comp(m, c) && delete!(m, c)
+    end
 
     # Replace GIVE Damage Aggrgator with new one including labor and removing
     # some unneeded intermediates
-    replace!(m, :DamageAggregator => DamageAggregator)
+    replace!(m, :DamageAggregator => DamageAggregator);
     
     # Need to set this damage aggregator to run from 2020 to 2300, currently picks up
     # 1750 to 2300 from replace!
@@ -126,7 +127,7 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     connect_param!(m, :Labor => :population, :Socioeconomic => :population)
     connect_param!(m, :Labor => :gdp, :Socioeconomic => :gdp)
     connect_param!(m, :Labor => :temp, :temperature => :T) # temperature from FaIR so relative to start year of 1750
-
+    
     # --------------------------------------------------------------------------    
     # Agriculture
     # --------------------------------------------------------------------------
@@ -140,10 +141,30 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
 
     update_param!(m, :Agriculture, :agrish0, agrish0_df[!, agrish_category])
 
-    # Population and GDP in 2017 for agrish basis
-    # TODO
-    # update_param!(m, :Agriculture, :gdp2017, gdp2017)
-    # update_param!(m, :Agriculture, :population2017, population2017)
+    # YPC 2017
+    df = DataFrame(:iso3 => dim_keys(m, :country)) # start with this country list
+    
+    if socioeconomics_source == :RFF    
+        ypc = read_parquet(joinpath(@__DIR__, "..", "data", "ypc2017", "rffsp_ypc2017.parquet")) |>
+                DataFrame |>
+                @filter(_.trial == RFFSPsample) |>
+                DataFrame
+        rename!(ypc, [:variable => :iso3, :value => :ypc])
+        ypc.ypc = ypc.ypc .* pricelevel_2011_to_2005 # convert $2011 to $2005
+
+    elseif socioeconomics_source == :SSP
+
+        SSP = socioeconomics_source == :SSP ? SSP_scenario[1:4] : nothing
+        ypc = load(joinpath(@__DIR__, "..", "data", "ypc2017", "Benveniste_$SSP.csv")) |> 
+                DataFrame |>
+                @filter(_.year == 2017) |>
+                DataFrame
+        insertcols!(ypc, :ypc => (1e3 * ypc.gdp) ./ ypc.pop ) # (1e3 * billions of USD) ./ millions of people
+        rename!(ypc, :country => :iso3)
+    end
+    df = innerjoin(df, select(ypc, [:iso3, :ypc]), on = :iso3) # join ypc data
+
+    update_param!(m, :Agriculture, :ypc2017, df.ypc)
 
     # GTAP impact fractions
     ag_gtap_df = DataFrame()

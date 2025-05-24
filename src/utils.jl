@@ -39,9 +39,9 @@ function get_ag_gtap_df(filepath::String, agriculture_pctile::Symbol)
             @filter(_.Scenario == "Crops Only" && _.Percentile == pctile_value) |>
             DataFrame
 
-    select!(df, [:Country, :Degrees, :Valueadded_in_M_USD, :Initial_Income_in_M_USD])
-    insertcols!(df, :impact_fraction => df.Valueadded_in_M_USD ./ df.Initial_Income_in_M_USD)
-    select!(df, Not([:Valueadded_in_M_USD, :Initial_Income_in_M_USD]))
+    select!(df, [:Country, :Degrees, :Welfare_in_M_USD, :Valueadded_in_M_USD])
+    insertcols!(df, :impact_fraction => df.Welfare_in_M_USD ./ df.Valueadded_in_M_USD)
+    select!(df, Not([:Welfare_in_M_USD, :Valueadded_in_M_USD]))
 
     rename!(df, [:Country => :gtap, :Degrees => :temp])
 
