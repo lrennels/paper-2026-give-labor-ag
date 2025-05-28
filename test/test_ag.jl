@@ -1,6 +1,6 @@
 using Mimi, VegaLite, StatsBase
 
-output_dir = joinpath(@__DIR__, "output")
+output_dir = joinpath(@__DIR__, "output", "ag")
 mkpath(output_dir)
 
 # Load all functions

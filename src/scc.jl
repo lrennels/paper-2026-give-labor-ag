@@ -207,7 +207,8 @@ function _compute_scc_mcs(mm::MarginalModel,
         post_mcs_creation_function(mcs)
     end
 
-    sectors = compute_sectoral_values ? [:total,  :cromar_mortality, :agriculture, :energy, :new_sector, :slr] : [:total]
+    sectors = compute_sectoral_values ? [:total,  :cromar_mortality, :agriculture, :energy, :labor, :slr] : [:total]
+    regions = [:globe]
 
     scc_values = Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta) => Vector{Union{Float64, Missing}}(undef, n) for dr in discount_rates, r in regions, s in sectors)
     intermediate_ce_scc_values = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors) : nothing
@@ -347,7 +348,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
         cromar_mortality_mds = post_trial_mm[:DamageAggregator, :cromar_mortality_damage]
         agriculture_mds = post_trial_mm[:DamageAggregator, :agriculture_damage]
         energy_mds = post_trial_mm[:DamageAggregator, :energy_damage]
-        new_sector_mds = post_trial_mm[:DamageAggregator, :new_sector_damage]
+        labor_mds = post_trial_mm[:DamageAggregator, :labor_damage]
     end
 
     # Save marginal damages
@@ -359,7 +360,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             md_values[(region=:globe, sector=:cromar_mortality)][trialnum, :]   = cromar_mortality_mds[_damages_idxs]
             md_values[(region=:globe, sector=:agriculture)][trialnum, :]        = agriculture_mds[_damages_idxs]
             md_values[(region=:globe, sector=:energy)][trialnum, :]             = energy_mds[_damages_idxs]
-            md_values[(region=:globe, sector=:new_sector)][trialnum, :]         = new_sector_mds[_damages_idxs]
+            md_values[(region=:globe, sector=:labor)][trialnum, :]              = labor_mds[_damages_idxs]
             md_values[(region=:globe, sector=:slr)][trialnum, :]                = slr_mds[_damages_idxs]
         end
     end
@@ -402,8 +403,8 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             scc = sum(df .* energy_mds[year_index:last_year_index])
             scc_values[(region=:globe, sector=:energy, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = scc
 
-            scc = sum(df .* new_sector_mds[year_index:last_year_index])
-            scc_values[(region=:globe, sector=:new_sector, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = scc
+            scc = sum(df .* labor_mds[year_index:last_year_index])
+            scc_values[(region=:globe, sector=:labor, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = scc
 
             scc = sum(df .* slr_mds[year_index:last_year_index])
             scc_values[(region=:globe, sector=:slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = scc
@@ -418,8 +419,8 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 intermediate_ce_scc = sum(df_ce .* energy_mds[year_index:last_year_index])
                 intermediate_ce_scc_values[(region=:globe, sector=:energy, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
     
-                intermediate_ce_scc = sum(df_ce .* new_sector_mds[year_index:last_year_index])
-                intermediate_ce_scc_values[(region=:globe, sector=:new_sector, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
+                intermediate_ce_scc = sum(df_ce .* labor_mds[year_index:last_year_index])
+                intermediate_ce_scc_values[(region=:globe, sector=:labor, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
     
                 intermediate_ce_scc = sum(df_ce .* slr_mds[year_index:last_year_index])
                 intermediate_ce_scc_values[(region=:globe, sector=:slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc    
