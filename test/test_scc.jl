@@ -58,7 +58,7 @@ for (k,v) in results[:scc]
             )
 end
 
-df |> @vlplot(
+df |> @filter(_.sector !== :total) |> @vlplot(
                 :bar,
                 x = :dr,
                 y = :expected_scc,
