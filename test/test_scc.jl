@@ -21,6 +21,8 @@ discount_rates = [
 ]
 
 # Deterministic SCC
+# TODO SSP ordering magnitude looks off
+
 m = get_model()
 scc = compute_scc(m, year = 2020)
 
@@ -30,11 +32,10 @@ scc = compute_scc(m, year = 2020)
 m = get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP585")
 scc = compute_scc(m, year = 2020)
 
-# TODO SSP ordering magnitude looks off
-
 # Monte Carlo SCC
+# TODO the ag sector seems too low
 m = get_model()
-update_param!(m, :DamageAggregator, :include_slr, false)
+# update_param!(m, :DamageAggregator, :include_slr, false)
 results = compute_scc(m;
                         year = 2020,
                         n = num_trials,
@@ -45,7 +46,6 @@ results = compute_scc(m;
                         save_md = true
         )
 
-# TODO the ag sector seems too low
 df = DataFrame()
 for (k,v) in results[:scc]
     append!(df, 

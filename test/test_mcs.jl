@@ -11,6 +11,7 @@ num_trials = 10
 save_list = [
     (:Labor, :gcm),
     (:Labor, :laborcost),
+    (:Agriculture, :gtap_impacts),
     (:Agriculture, :agcost)
 ]
 

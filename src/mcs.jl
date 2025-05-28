@@ -71,8 +71,16 @@ function get_mcs(trials;
     Mimi.add_transform!(mcs, :Labor, :gcm, :(=), rv_name) # connect random variable to parameter
 
     # add uncertainty for agriculture
-    # TODO
-
+    filepath = joinpath(@__DIR__, "..", "data", "gtap_output/202505_Plants_People_v2.csv")
+    countries, ag_sample_stores = get_probdists_gtap_df(filepath, trials)
+ 
+    for coef in [1,2,3,4,5,6,7] # seven coefficients defined with an anonymous dimension
+        for (i, country) in enumerate(countries)
+            rv_name = Symbol("rv_gtap_coef$(coef)_$country")
+            Mimi.add_RV!(mcs, rv_name, ag_sample_stores[i, coef])
+            Mimi.add_transform!(mcs, :Agriculture, :gtap_impacts, :(=), rv_name, [country, coef])
+        end
+    end
     return mcs
 end
 
