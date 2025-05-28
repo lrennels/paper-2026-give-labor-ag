@@ -1,5 +1,9 @@
 using Mimi
 
+# make sure to activate the right environment
+using Pkg
+Pkg.activate(".")
+
 # utils
 include("utils.jl")
 

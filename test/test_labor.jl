@@ -50,19 +50,22 @@ for ssp in ssps
 
 end
 
-# Load DataFrames for Graphs
+# Load DataFrames for graphs
 laborloss_gtap_frac = load(joinpath(output_dir, "laborloss_gtap_frac_SSP245.csv")) |> DataFrame
 laborcost = load(joinpath(output_dir, "laborcost_SSP245.csv")) |> DataFrame
 
+min_val = minimum(laborloss_gtap_frac.temp)
+max_val = maximum(laborloss_gtap_frac.temp)
+
 # Labor Loss Fraction
-n = 10_000
+n = 20_000
 thin_rows = sample(collect(1:size(laborloss_gtap_frac,1)), n; replace = false)
 laborloss_gtap_frac[thin_rows, :] |>
     @vlplot(
         title = ["Fractional Loss due to Labor Sector"; "All countries, Colored by GCM"],
-        mark = {:circle, size = 5.},
+        mark = {:circle, size = 5., clip = true},
         color = {"gcm:o", scale = {scheme = :spectral}, legend = {symbolOpacity = 1.}},
-        x = {"temp:q", title = "Temperature Anomaly (deg C)"},
+        x = {"temp:q", title = "Temperature Anomaly (deg C)", scale = {domain = (min_val, max_val)}},
         y = {"laborloss_gtap_frac", title = "Fractional Loss"}, 
         width = 500, 
         height = 250
@@ -72,23 +75,23 @@ laborloss_gtap_frac |>
     @filter(_.gcm == "model_ensemble") |>
     @vlplot(
         title = ["Fractional Loss due to Labor Sector"; "Model Ensemble only, Colored by Country"],
-        mark = {:circle, size = 2.5},
-        color = {"country:o", scale = {scheme = :spectral}, legend = false},
-        x = {"temp:q", title = "Temperature Anomaly (deg C)"},
+        mark = {:circle, size = 5, clip = true},
+        color = {"country:o", scale = {scheme = :category20}, legend = false},
+        x = {"temp:q", title = "Temperature Anomaly (deg C)", scale = {domain = (min_val, max_val)}},
         y = {"laborloss_gtap_frac", title = "Fractional Loss"}, 
         width = 500, 
         height = 250
     ) |> save(joinpath(output_dir, "laborloss_gtap_frac_model_ensemble.png"), ppi = 300)
 
 # Labor Costs
-n = 10_000
+n = 20_000
 thin_rows = sample(collect(1:size(laborcost,1)), n; replace = false)
 laborcost[thin_rows, :] |>
     @vlplot(
         title = ["Labor Sector Costs"; "All countries, Colored by GCM"],
-        mark = {:circle, size = 5.},
+        mark = {:circle, size = 15., clip = true},
         color = {"gcm:o", scale = {scheme = :spectral}, legend = {symbolOpacity = 1.}},
-        x = {"temp:q", title = "Temperature Anomaly (deg C)"},
+        x = {"temp:q", title = "Temperature Anomaly (deg C)", scale = {domain = (min_val, max_val)}},
         y = {"laborcost", title = "Labor Cost (billions 2005 USD)"}, 
         width = 500, 
         height = 250
@@ -98,9 +101,9 @@ laborcost |>
     @filter(_.gcm == "model_ensemble") |>
     @vlplot(
         title = ["Labor Sector Costs"; "Model Ensemble only, Colored by Country"],
-        mark = {:circle, size = 2.5},
-        color = {"country:o", scale = {scheme = :spectral}, legend = false},
-        x = {"temp:q", title = "Temperature Anomaly (deg C)"},
+        mark = {:circle, size = 5., clip = true},
+        color = {"country:o", scale = {scheme = :category20}, legend = false},
+        x = {"temp:q", title = "Temperature Anomaly (deg C)", scale = {domain = (min_val, max_val)}},
         y = {"laborcost", title = "Labor Cost (billions 2005 USD)"}, 
         width = 500, 
         height = 250
@@ -116,15 +119,20 @@ for ssp in ssps
     append!(df, df_ssp)
 end
 
+countries = sample(unique(df.country), 16; replace = false)
+
 df.time = Date.(df.time)
 df |> 
-    #@filter(_.country == "USA") |>
+    @filter(_.country in countries) |>
     @vlplot(
-        title = ["Labor Sector Costs by SSP"; "Model Ensemble only, Colored by SSP"],
+        resolve = {scale = {y = :independent}},
+        title = ["Labor Sector Costs by SSP (billions 2005 USD)"; "Model Ensemble only, Colored by SSP"],
         mark = {:circle, size = 10.},
         color = {"ssp:n"},
-        x = {"time:t", title = "Time"},
-        y = {"laborcost", title = "Labor Cost (billions 2005 USD)"}, 
-        width = 500, 
-        height = 500
-    ) |> save(joinpath(output_dir, "laborcost_model_ensemble_by_ssp.png"), ppi = 300)
+        x = {"time:t", title = nothing},
+        y = {"laborcost", title = nothing},
+        width = 100, 
+        height = 100,
+        wrap = :country, 
+        columns = 4
+    ) |> save(joinpath(output_dir, "laborcost_model_ensemble_by_ssp_and_country.png"), ppi = 300)

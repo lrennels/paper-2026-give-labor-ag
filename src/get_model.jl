@@ -68,19 +68,25 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
                             RFFSPsample = RFFSPsample
                         )
 
-    # Remove Agriculture components and regional aggregators
-    for c in [:Agriculture, :Agriculture_aggregator_pop90, :Agriculture_aggregator_gdp90,
-            :Agriculture_aggregator_population, :Agriculture_aggregator_gdp, :AgricultureDamagesDisaggregator,
-            :Damages_RegionAggregatorSum, :regional_netconsumption, :RegionalPerCapitaGDP]
+    # Remove agriculture components and regional aggregators
+    for c in [  :Agriculture,
+                :Agriculture_aggregator_pop90,
+                :Agriculture_aggregator_gdp90,
+                :Agriculture_aggregator_population,
+                :Agriculture_aggregator_gdp,
+                :AgricultureDamagesDisaggregator,
+                :Damages_RegionAggregatorSum,
+                :regional_netconsumption,
+                :RegionalPerCapitaGDP
+            ]
         Mimi.has_comp(m, c) && delete!(m, c)
     end
 
-    # Replace GIVE Damage Aggrgator with new one including labor and removing
-    # some unneeded intermediates
+    # Replace GIVE Damage Aggregator component
     replace!(m, :DamageAggregator => DamageAggregator);
     
-    # Need to set this damage aggregator to run from 2020 to 2300, currently picks up
-    # 1750 to 2300 from replace!
+    # Need to set this damage aggregator to run from 2020 to 2300, currently
+    # picks up 1750 to 2300 from replace! function call
     Mimi.set_first_last!(m, :DamageAggregator, first=2020);
 
     # Set new dimensions
@@ -88,7 +94,7 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     dimension_gcm.GCM[1] == "model_ensemble" || error("The first element of the GCM dimension should be 'modeL_ensemble', currently it is $(dimension_gcm.GCM[1]).")
     set_dimension!(m, :gcm, dimension_gcm.GCM)
 
-    # Add two new components
+    # Add new components
     add_comp!(m, Labor, :Labor, after = :CromarMortality, first = damages_first);
     add_comp!(m, Agriculture, :Agriculture, after = :Labor, first = damages_first);
 
@@ -97,18 +103,22 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     # --------------------------------------------------------------------------
 
     # GTAP impact fractions
+
+    # 1. Create an empty dataframe with all the labels
     labor_gtap_df = DataFrame()
     for iso3 in dim_keys(m, :country), gcm in dim_keys(m, :gcm), temp in collect(1.:0.5:4.)
         append!(labor_gtap_df, DataFrame(:iso3 => iso3, :gcm => gcm, :temp => temp))
     end
     labor_gtap_df = innerjoin(labor_gtap_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
 
+    # 2. Join data to the labels dataframe
     filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202505_Plants_People_v2.csv")
     impact = get_labor_gtap_df(filepath)
 
     labor_gtap_df = innerjoin(labor_gtap_df, impact, on = [:gtap, :gcm, :temp]) # join agriculture share data
     select!(labor_gtap_df, Not(:gtap))
 
+    # 3. Turn the dataframe into a matrix
     labor_gtap = Array{Float64}(undef, length(dim_keys(m, :country)), 7, length(dim_keys(m, :gcm)))
     for (i, gcm) in enumerate(dim_keys(m, :gcm))
         df = labor_gtap_df |> @filter(_.gcm == gcm) |> DataFrame
@@ -135,7 +145,6 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     # Agriculture share
     agrish0_df = DataFrame(:iso3 => dim_keys(m, :country)) # start with the country list
     agrish0_df = innerjoin(agrish0_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
-
     shares = load(joinpath(@__DIR__, "..", "data", "202505_SectorShare_v2.csv")) |> DataFrame
     agrish0_df = innerjoin(agrish0_df, shares, on = :gtap) # join agriculture share data
 
@@ -167,12 +176,15 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     update_param!(m, :Agriculture, :ypc2017, df.ypc)
 
     # GTAP impact fractions
+
+    # 1. Create an empty dataframe with all the labels
     ag_gtap_df = DataFrame()
     for iso3 in dim_keys(m, :country), temp in collect(1.:0.5:4.)
         append!(ag_gtap_df, DataFrame(:iso3 => iso3, :temp => temp))
     end
     ag_gtap_df = innerjoin(ag_gtap_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
 
+    # 2. Join data to the labels dataframe
     filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202505_Plants_People_v2.csv")
     impact = get_ag_gtap_df(filepath, agriculture_pctile)
     ag_gtap_df = innerjoin(ag_gtap_df, impact, on = [:gtap, :temp]) # join agriculture share data
@@ -180,7 +192,7 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     select!(ag_gtap_df, Not(:gtap))
     ag_gtap_df = unstack(ag_gtap_df, :temp, :impact_fraction)
 
-    # some checks on dimensions
+    # 3. Check dimensions
     all(ag_gtap_df.iso3 .== dim_keys(m, :country)) || error("The ag gtap dataframe iso3 row order does not match the country dimension keys.")
     all(names(ag_gtap_df)[2:end] .== string.(collect(1.:0.5:4.))) || error("The ag gtap dataframe column order does not match the temperature keys.")
 

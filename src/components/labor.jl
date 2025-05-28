@@ -15,7 +15,7 @@ using Mimi
 
     # Variables
     laborloss_gtap_frac = Variable(index=[time, country]) # fractional loss - intermediate variable for calculating laborcost
-    laborcost = Variable(index=[time,country], unit="billion US\$2005/yr")
+    laborcost = Variable(index=[time, country], unit="billion US\$2005/yr")
 
     function run_timestep(p,v,d,t)
         for c in d.country
