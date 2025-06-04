@@ -69,3 +69,42 @@ function get_labor_gtap_df(filepath::String)
     return df
     
 end
+
+function get_probdists_gtap_df(filepath, n=1000)
+    
+    m = get_model() # TODO admittedly this is overkill but being extremely careful to have the right iso3 order
+    countries = dim_keys(m, :country) # get the country dimension keys from the model
+    region_crosswalk = load(joinpath(@__DIR__, "..", "data", "region_crosswalk.csv")) |> DataFrame
+
+    lowDF =  get_ag_gtap_df(filepath, :low)
+    lowDF = unstack(lowDF, :gtap, :temp, :impact_fraction)
+    lowDF = innerjoin(select(region_crosswalk, :iso3, :gtap), lowDF, on = :gtap)
+    all(lowDF.iso3 .== countries) || error("The ag gtap dataframe iso3 column order does not match the country dimension keys.")
+    select!(lowDF, Not(:gtap, :iso3)) # remove gtap column, as it is now redundant
+
+    midDF =  get_ag_gtap_df(filepath, :mid)
+    midDF = unstack(midDF, :gtap, :temp, :impact_fraction)
+    midDF = innerjoin(select(region_crosswalk, :iso3, :gtap), midDF, on = :gtap)
+    all(midDF.iso3 .== countries) || error("The ag gtap dataframe iso3 column order does not match the country dimension keys.")
+    select!(midDF, Not(:gtap, :iso3)) # remove gtap column, as it is now redundant
+
+    highDF = get_ag_gtap_df(filepath, :high)
+    highDF = unstack(highDF, :gtap, :temp, :impact_fraction)
+    highDF = innerjoin(select(region_crosswalk, :iso3, :gtap), highDF, on = :gtap)
+    all(highDF.iso3 .== countries) || error("The ag gtap dataframe iso3 column order does not match the country dimension keys.")
+    select!(highDF, Not(:gtap, :iso3)) # remove gtap column, as it is now redundant
+
+    # For each region and temperature point we construct an interpolation where the x values are between 0 and 1
+    # and the y values are the values from the three scenarios.
+    dists = [LinearInterpolation([0.,0.5,1.], [lowDF[r,temp],midDF[r,temp], highDF[r,temp]]) for r in 1:184, temp in 1:7]
+
+    # We only sample one set of random numbers, as we want perfect correlation between all the individual
+    # parameter values.
+    samples = rand(TriangularDist(0., 1., 0.5), n)
+
+    # Now evaluate the interpolated function we created above with the samples from the triangular distributions
+    sample_stores = [Mimi.SampleStore(dists[r,temp].(samples)) for r in 1:184, temp in 1:7]
+
+    return countries, sample_stores
+
+end
