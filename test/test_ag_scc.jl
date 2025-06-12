@@ -185,7 +185,7 @@ df |>   @filter(_.dr == 0.02 && _.sector == "total") |>
             color = {:version, legend = {symbolOpacity = 1.}},
             row = :version,
             resolve = {scale = {y = :independent}}
-    )
+    ) |> save(joinpath(top_output_dir, "Ag_SCC.png"), ppi = 300)
 
 # Figure - Temp
 df1 = load(joinpath(top_output_dir, "$(SSP_scenario)_NoAgUncertainty", "original", "results", "model_1", "temperature_T.csv")) |> DataFrame
@@ -224,7 +224,8 @@ df |> @vlplot(
             strokeWidth = {"trialnum", scale = {range = [0.5]}, legend = false}, # hack to get lines to show up differently
             color = {:version, legend = {symbolOpacity = 1.}},
             width = 500
-    )
+    ) |> save(joinpath(top_output_dir, "temperature.png"), ppi = 300)
+
 
 # # Figure - Ag Loss GTAP Fraction
 # df1 = load(joinpath(top_output_dir, "$(SSP_scenario)_NoAgUncertainty", "original", "results", "model_1", "Agriculture_AgLossGTAP.csv")) |> @filter(_.time >= 2020) |> DataFrame
@@ -307,125 +308,364 @@ df |> @vlplot(
 ## RFF SPs | No Agriculture Uncertainty
 ## -----------------------------------------------------------------------------
 
-## -----------------------------------------------------------------------------
-## RFF SPs | Full Uncertainty
-## -----------------------------------------------------------------------------
+# Original
 
-# DETERMINISTIC
+output_dir = joinpath(top_output_dir, "RFFSPs_NoAgUncertainty", "original")
+mkpath(output_dir)
 
-results_give = MimiGIVE.compute_scc(m;
+m = MimiGIVE.get_model()
+update_param!(m, :DamageAggregator, :include_slr, false)
+update_param!(m, :DamageAggregator, :include_cromar_mortality, false)
+update_param!(m, :DamageAggregator, :include_energy, false)
+
+save_list = [
+                (:DamageAggregator, :agriculture_damage),
+                (:temperature, :T),
+                # (:Agriculture, :temp),
+                # (:Agriculture, :AgLossGTAP)
+            ]
+
+Random.seed!(seed)
+results = MimiGIVE.compute_scc(m;
                         year = 2020,
-                        prtp = exp(9.149606e-05) - 1,
-                        eta = 1.016010e+00,
-                        compute_sectoral_values = true
+                        n = n,
+                        discount_rates = discount_rates,
+                        compute_sectoral_values = true,
+                        post_mcs_creation_function = remove_ag_original,
+                        output_dir = output_dir,
+                        save_list = save_list
         )
 
-println("Deterministic run of SSP245 GIVE version = $(results_give)")
-# Deterministic run of SSP245 GIVE version = 63.30369956855238
+df = DataFrame()
+for (k,v) in results[:scc]
+    append!(df, 
+            DataFrame(
+                dr = k.dr_label,
+                sector = k.sector,
+                expected_scc = v.expected_scc .* pricelevel_2005_to_2020,
+                se_expected_scc = v.se_expected_scc .* pricelevel_2005_to_2020,
+                scc = v.sccs .* pricelevel_2005_to_2020,
+                trial = collect(1:n)
+            )
+        )
+end
 
-m = get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
+t = load(joinpath(output_dir, "results", "model_1", "temperature_T.csv")) |>
+        @filter(_.time == 2100) |> 
+        DataFrame
+
+df = innerjoin(df, select(t, Not(:time)), on = :trial => :trialnum)
+rename!(df, :T => :T_2100)
+df |> save(joinpath(output_dir, "scc.csv"))
+
+# New
+output_dir = joinpath(top_output_dir, "RFFSPs_NoAgUncertainty", "new")
+mkpath(output_dir)
+
+m = get_model(; socioeconomics_source = :SSP, SSP_scenario = SSP_scenario)
 update_param!(m, :DamageAggregator, :include_slr, false)
 update_param!(m, :DamageAggregator, :include_cromar_mortality, false)
 update_param!(m, :DamageAggregator, :include_energy, false)
 update_param!(m, :DamageAggregator, :include_labor, false)
 
-results_new = compute_scc(m;
+save_list = [
+                (:DamageAggregator, :agriculture_damage),
+                (:temperature, :T),
+                # (:Agriculture, :agloss_gtap_frac)
+            ]
+
+Random.seed!(seed)
+results = compute_scc(m;
                         year = 2020,
-                        prtp = exp(9.149606e-05) - 1,
-                        eta = 1.016010e+00,
-                        compute_sectoral_values = true
+                        n = n,
+                        discount_rates = discount_rates,
+                        compute_sectoral_values = true,
+                        post_mcs_creation_function = remove_ag_new,
+                        output_dir = output_dir,
+                        save_list = save_list
         )
-    
-println("Deterministic run of SSP245 NEW version = $(results_new)")
-# Deterministic run of SSP245 NEW version = 3.3525169646280046
 
-# MCS
+df = DataFrame()
+for (k,v) in results[:scc]
+    append!(df, 
+            DataFrame(
+                dr = k.dr_label,
+                sector = k.sector,
+                expected_scc = v.expected_scc .* pricelevel_2005_to_2020,
+                se_expected_scc = v.se_expected_scc .* pricelevel_2005_to_2020,
+                scc = v.sccs .* pricelevel_2005_to_2020,
+                trial = collect(1:n)
+            )
+        )
+end
 
-# settings
-num_trials = 10_000
-discount_rates = [
-    (label = "1.5%", prtp = exp(9.149606e-05) - 1, eta = 1.016010e+00),
-    (label = "2.0%", prtp = exp(0.001972641) - 1, eta = 1.244458999),
-    (label = "2.5%", prtp = exp(0.004618784) - 1, eta = 1.421158088),
-    (label = "3.0%", prtp = exp(0.007702711) - 1, eta = 1.567899391)
-]
+t = load(joinpath(output_dir, "results", "model_1", "temperature_T.csv")) |>
+        @filter(_.time == 2100) |> 
+        DataFrame
 
-# Original MimiGIVE
+df = innerjoin(df, select(t, Not(:time)), on = :trial => :trialnum)
+rename!(df, :T => :T_2100)
+df |> save(joinpath(output_dir, "scc.csv"))
+
+# Figure - SC-CO2
+df1 = load(joinpath(top_output_dir, "RFFSPs_NoAgUncertainty", "original", "scc.csv")) |> DataFrame
+insertcols!(df1, :version => :original)
+
+df2 = load(joinpath(top_output_dir, "RFFSPs_NoAgUncertainty", "new", "scc.csv")) |> DataFrame
+insertcols!(df2, :version => :new)
+
+df = vcat(df1, df2)
+original_exp_scc = round(unique((df |> @filter(_.dr == 0.02 && _.version == :original && _.sector == "total") |> DataFrame).expected_scc)[1], digits = 2)
+new_exp_scc = round(unique((df |> @filter(_.dr == 0.02 && _.version == :new && _.sector == "total") |> DataFrame).expected_scc)[1], digits = 2)
+
+df |>   @filter(_.dr == 0.02 && _.sector == "total") |>
+        @vlplot(
+            config = {
+                font = "Helvetica",
+                # style = {cell = {stroke = :transparent}},
+                axis = {
+                    labelFontSize = 7,
+                    titleFontSize = 7,
+                    domainColor = :black,
+                    tickColor = :black,
+                    titleFontWeight = :normal
+                },
+                legend = {
+                    labelFontSize = 7,
+                    titleFontSize = 7,
+                    # orient = "bottom-right",
+                    titleFontWeight = :normal,
+                    symbolSize = 25.
+                },
+                text = {fontSize = 7},
+                title = {fontSize = 8, anchor = :start}
+            },
+            title = ["SC-CO2 | RFFSPs | No Ag Uncertainty", "Original E[SC-CO2] = $(original_exp_scc) | New E[SC-CO2] = $(new_exp_scc)"],
+            mark = {:circle, size = 20, opacity = 0.7},
+            x = {:T_2100, title = "GMST Anomaly Relative to 1750 (deg C)"},
+            y = {:scc, title = "SC-CO2"},
+            color = {:version, legend = {symbolOpacity = 1.}},
+            row = :version,
+            resolve = {scale = {y = :independent}}
+    ) |> save(joinpath(top_output_dir, "Ag_SCC.png"), ppi = 300)
+
+# Figure - Temp
+df1 = load(joinpath(top_output_dir, "RFFSPs_NoAgUncertainty", "original", "results", "model_1", "temperature_T.csv")) |> DataFrame
+insertcols!(df1, :version => :original)
+
+df2 = load(joinpath(top_output_dir, "RFFSPs_NoAgUncertainty", "new", "results", "model_1", "temperature_T.csv")) |> DataFrame
+insertcols!(df2, :version => :new)
+
+df = vcat(df1, df2) |> @filter(_.time >= 2020) |> DataFrame
+
+df |> @vlplot(
+            config = {
+                font = "Helvetica",
+                # style = {cell = {stroke = :transparent}},
+                axis = {
+                    labelFontSize = 7,
+                    titleFontSize = 7,
+                    domainColor = :black,
+                    tickColor = :black,
+                    titleFontWeight = :normal
+                },
+                legend = {
+                    labelFontSize = 7,
+                    titleFontSize = 7,
+                    # orient = "bottom-right",
+                    titleFontWeight = :normal,
+                    symbolSize = 25.
+                },
+                text = {fontSize = 7},
+                title = {fontSize = 8, anchor = :start}
+            },
+            title = ["Temp | RFFSPs | No Ag Uncertainty", "Original E[SC-CO2] = $(original_exp_scc) | New E[SC-CO2] = $(new_exp_scc)"],
+            mark = {:line, opacity = 0.4},
+            x = {"time:q", title = "year"},
+            y = {"T:q", title = "GMST Anomaly Relative to 1750 (deg C)"},
+            strokeWidth = {"trialnum", scale = {range = [0.5]}, legend = false}, # hack to get lines to show up differently
+            color = {:version, legend = {symbolOpacity = 1.}},
+            width = 500
+    ) |> save(joinpath(top_output_dir, "temperature.png"), ppi = 300)
+
+## -----------------------------------------------------------------------------
+## RFF SPs | Full Uncertainty
+## -----------------------------------------------------------------------------
+
+# Original
+
+output_dir = joinpath(top_output_dir, "RFFSPs_FullUncertainty", "original")
+mkpath(output_dir)
 
 m = MimiGIVE.get_model()
 update_param!(m, :DamageAggregator, :include_slr, false)
+update_param!(m, :DamageAggregator, :include_cromar_mortality, false)
+update_param!(m, :DamageAggregator, :include_energy, false)
 
-function remove_ag(mcs)
-    for coef in [1,2,3]
-        for region in ["USA","CAN","WEU","JPK","ANZ","EEU","FSU","MDE","CAM","LAM","SAS","SEA","CHI","MAF","SSA","SIS"] # fund regions for ag
-            rv_name = Symbol("rv_gtap_coef$(coef)_$region")
-            Mimi.delete_RV!(mcs, rv_name)
-        end
-    end
-end
+save_list = [
+                (:DamageAggregator, :agriculture_damage),
+                (:temperature, :T),
+                # (:Agriculture, :temp),
+                # (:Agriculture, :AgLossGTAP)
+            ]
 
-results_ag_give = MimiGIVE.compute_scc(m;
+Random.seed!(seed)
+results = MimiGIVE.compute_scc(m;
                         year = 2020,
-                        n = num_trials,
+                        n = n,
                         discount_rates = discount_rates,
                         compute_sectoral_values = true,
-                        post_mcs_creation_function = remove_ag
+                        output_dir = output_dir,
+                        save_list = save_list
         )
 
-df_ag_give = DataFrame()
-for (k,v) in results_ag_give[:scc]
-    append!(df_ag_give, 
-                DataFrame(
-                    dr = k.dr_label,
-                    sector = k.sector,
-                    expected_scc = v.expected_scc .* pricelevel_2005_to_2020,
-                    se_expected_scc = v.se_expected_scc .* pricelevel_2005_to_2020
-                )
+df = DataFrame()
+for (k,v) in results[:scc]
+    append!(df, 
+            DataFrame(
+                dr = k.dr_label,
+                sector = k.sector,
+                expected_scc = v.expected_scc .* pricelevel_2005_to_2020,
+                se_expected_scc = v.se_expected_scc .* pricelevel_2005_to_2020,
+                scc = v.sccs .* pricelevel_2005_to_2020,
+                trial = collect(1:n)
             )
+        )
 end
 
-# without ag MCS
+t = load(joinpath(output_dir, "results", "model_1", "temperature_T.csv")) |>
+        @filter(_.time == 2100) |> 
+        DataFrame
 
-#  Row │ dr      sector       expected_scc  se_expected_scc 
-#      │ String  Symbol       Float64       Float64         
-# ─────┼────────────────────────────────────────────────────
-#    1 │ 2.0%    agriculture       69.5603          25.0335
-#    2 │ 1.5%    agriculture      129.525           43.674
-#    3 │ 2.5%    agriculture       42.2579          16.3797
-#    4 │ 3.0%    agriculture       28.2304          11.8726
+df = innerjoin(df, select(t, Not(:time)), on = :trial => :trialnum)
+rename!(df, :T => :T_2100)
+df |> save(joinpath(output_dir, "scc.csv"))
 
-# with ag MCS
+# New
+output_dir = joinpath(top_output_dir, "RFFSPs_FullUncertainty", "new")
+mkpath(output_dir)
 
-#  Row │ dr      sector       expected_scc  se_expected_scc 
-#      │ String  Symbol       Float64       Float64         
-# ─────┼────────────────────────────────────────────────────
-#    1 │ 2.0%    agriculture       81.5173          2.97001
-#    2 │ 1.5%    agriculture      130.631           4.16798
-#    3 │ 2.5%    agriculture       52.3352          2.15958
-#    4 │ 3.0%    agriculture       34.8274          1.60303
-
-# New Model
-
-m = get_model()
+m = get_model(; socioeconomics_source = :SSP, SSP_scenario = SSP_scenario)
 update_param!(m, :DamageAggregator, :include_slr, false)
+update_param!(m, :DamageAggregator, :include_cromar_mortality, false)
+update_param!(m, :DamageAggregator, :include_energy, false)
+update_param!(m, :DamageAggregator, :include_labor, false)
 
-results_ag_new = compute_scc(m;
+save_list = [
+                (:DamageAggregator, :agriculture_damage),
+                (:temperature, :T),
+                # (:Agriculture, :agloss_gtap_frac)
+            ]
+
+Random.seed!(seed)
+results = compute_scc(m;
                         year = 2020,
-                        n = num_trials,
+                        n = n,
                         discount_rates = discount_rates,
                         compute_sectoral_values = true,
-                        post_mcs_creation_function = remove_ag
+                        output_dir = output_dir,
+                        save_list = save_list
         )
 
-df_ag_new = DataFrame()
-for (k,v) in results_ag_new[:scc]
-    append!(df_ag_new, 
-                DataFrame(
-                    dr = k.dr_label,
-                    sector = k.sector,
-                    expected_scc = v.expected_scc .* pricelevel_2005_to_2020,
-                    se_expected_scc = v.se_expected_scc .* pricelevel_2005_to_2020
-                )
+df = DataFrame()
+for (k,v) in results[:scc]
+    append!(df, 
+            DataFrame(
+                dr = k.dr_label,
+                sector = k.sector,
+                expected_scc = v.expected_scc .* pricelevel_2005_to_2020,
+                se_expected_scc = v.se_expected_scc .* pricelevel_2005_to_2020,
+                scc = v.sccs .* pricelevel_2005_to_2020,
+                trial = collect(1:n)
             )
+        )
 end
 
+t = load(joinpath(output_dir, "results", "model_1", "temperature_T.csv")) |>
+        @filter(_.time == 2100) |> 
+        DataFrame
+
+df = innerjoin(df, select(t, Not(:time)), on = :trial => :trialnum)
+rename!(df, :T => :T_2100)
+df |> save(joinpath(output_dir, "scc.csv"))
+
+# Figure - SC-CO2
+df1 = load(joinpath(top_output_dir, "RFFSPs_FullUncertainty", "original", "scc.csv")) |> DataFrame
+insertcols!(df1, :version => :original)
+
+df2 = load(joinpath(top_output_dir, "RFFSPs_FullUncertainty", "new", "scc.csv")) |> DataFrame
+insertcols!(df2, :version => :new)
+
+df = vcat(df1, df2)
+original_exp_scc = round(unique((df |> @filter(_.dr == 0.02 && _.version == :original && _.sector == "total") |> DataFrame).expected_scc)[1], digits = 2)
+new_exp_scc = round(unique((df |> @filter(_.dr == 0.02 && _.version == :new && _.sector == "total") |> DataFrame).expected_scc)[1], digits = 2)
+
+df |>   @filter(_.dr == 0.02 && _.sector == "total") |>
+        @vlplot(
+            config = {
+                font = "Helvetica",
+                # style = {cell = {stroke = :transparent}},
+                axis = {
+                    labelFontSize = 7,
+                    titleFontSize = 7,
+                    domainColor = :black,
+                    tickColor = :black,
+                    titleFontWeight = :normal
+                },
+                legend = {
+                    labelFontSize = 7,
+                    titleFontSize = 7,
+                    # orient = "bottom-right",
+                    titleFontWeight = :normal,
+                    symbolSize = 25.
+                },
+                text = {fontSize = 7},
+                title = {fontSize = 8, anchor = :start}
+            },
+            title = ["SC-CO2 | RFFSPs | Full Uncertainty", "Original E[SC-CO2] = $(original_exp_scc) | New E[SC-CO2] = $(new_exp_scc)"],
+            mark = {:circle, size = 20, opacity = 0.7},
+            x = {:T_2100, title = "GMST Anomaly Relative to 1750 (deg C)"},
+            y = {:scc, title = "SC-CO2"},
+            color = {:version, legend = {symbolOpacity = 1.}},
+            row = :version,
+            resolve = {scale = {y = :independent}}
+    ) |> save(joinpath(top_output_dir, "Ag_SCC.png"), ppi = 300)
+
+# Figure - Temp
+df1 = load(joinpath(top_output_dir, "RFFSPs_FullUncertainty", "original", "results", "model_1", "temperature_T.csv")) |> DataFrame
+insertcols!(df1, :version => :original)
+
+df2 = load(joinpath(top_output_dir, "RFFSPs_FullUncertainty", "new", "results", "model_1", "temperature_T.csv")) |> DataFrame
+insertcols!(df2, :version => :new)
+
+df = vcat(df1, df2) |> @filter(_.time >= 2020) |> DataFrame
+
+df |> @vlplot(
+            config = {
+                font = "Helvetica",
+                # style = {cell = {stroke = :transparent}},
+                axis = {
+                    labelFontSize = 7,
+                    titleFontSize = 7,
+                    domainColor = :black,
+                    tickColor = :black,
+                    titleFontWeight = :normal
+                },
+                legend = {
+                    labelFontSize = 7,
+                    titleFontSize = 7,
+                    # orient = "bottom-right",
+                    titleFontWeight = :normal,
+                    symbolSize = 25.
+                },
+                text = {fontSize = 7},
+                title = {fontSize = 8, anchor = :start}
+            },
+            title = ["Temp | RFFSPs | Full Uncertainty", "Original E[SC-CO2] = $(original_exp_scc) | New E[SC-CO2] = $(new_exp_scc)"],
+            mark = {:line, opacity = 0.4},
+            x = {"time:q", title = "year"},
+            y = {"T:q", title = "GMST Anomaly Relative to 1750 (deg C)"},
+            strokeWidth = {"trialnum", scale = {range = [0.5]}, legend = false}, # hack to get lines to show up differently
+            color = {:version, legend = {symbolOpacity = 1.}},
+            width = 500
+    ) |> save(joinpath(top_output_dir, "temperature.png"), ppi = 300)
