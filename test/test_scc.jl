@@ -28,17 +28,21 @@ discount_rates = [
 ## -----------------------------------------------------------------------------
 
 m = get_model()
-scc = compute_scc(m, year = 2020)
 
 for ssp in ["SSP126", "SSP245", "SSP370", "SSP585"]
     m = get_model(; socioeconomics_source = :SSP, SSP_scenario = ssp)
     scc = compute_scc(m, year = 2020) .* pricelevel_2005_to_2020
-    println("Deterministic SCC for $ssp = $scc")
+    println("New Deterministic SCC for $ssp = $scc")
+    
+    m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = ssp)
+    scc = MimiGIVE.compute_scc(m, year = 2020) .* pricelevel_2005_to_2020
+    println("GIVE Deterministic SCC for $ssp = $scc")
+
+    println("")
 end
 
 ## -----------------------------------------------------------------------------
-# Monte Carlo SCC
-## TODO the ag sector seems too low
+#$ Monte Carlo SCC
 ## -----------------------------------------------------------------------------
 
 # get the data
@@ -96,47 +100,48 @@ df |>   @filter(_.sector !== :total) |>
                         step = 20
                     },
             :bar,
+            title =  "Partial Expected SC-CO2s (n = 1000)",
             x = {:sector, title = nothing},
-            y = :expected_scc,
+            y = {:expected_scc, title = "SC-CO2 (2020 USD)"},
             color = :sector, 
-            column = :dr
+            column = {:dr, title = nothing}
         ) |> save(joinpath(output_dir, "scc_groupedDR.png"), ppi = 300)
-
 
 df |>   @filter(_.sector !== :total) |>
         @vlplot(
-        config = {
-                    font = "Arial",
-                    style = {cell = {stroke = :transparent}},
-                    axis = {
-                        domainColor = :black,
-                        tickColor = :black,
-                        labelFontSize = 7,
-                        labelFlush = false,
-                        titleFontWeight = :normal,
-                        titleFontSize = 7,
-                        gridColor = {
-                            value = "#ddd"
+            config = {
+                        font = "Arial",
+                        style = {cell = {stroke = :transparent}},
+                        axis = {
+                            domainColor = :black,
+                            tickColor = :black,
+                            labelFontSize = 7,
+                            labelFlush = false,
+                            titleFontWeight = :normal,
+                            titleFontSize = 7,
+                            gridColor = {
+                                value = "#ddd"
+                            },
+                            # gridOpacity = {
+                            #     condition = {
+                            #         test = "datum.value===0",
+                            #         value = 1
+                            #     },
+                            #     value = 0
+                            # }
                         },
-                        # gridOpacity = {
-                        #     condition = {
-                        #         test = "datum.value===0",
-                        #         value = 1
-                        #     },
-                        #     value = 0
-                        # }
                     },
-                },
-                width = 280/5,
-                height = {
-                    step = 20
-                },
-            :bar,
-            x = {:dr, title = nothing},
-            y = :expected_scc,
-            color = :sector, 
-            column = :sector
-        ) |> save(joinpath(output_dir, "scc_groupedSector.png"), ppi = 300)
+                    width = 280/5,
+                    height = {
+                        step = 20
+                    },
+                :bar,
+                title =  "Partial Expected SC-CO2s (n = 1000)",
+                x = {:dr, title = nothing},
+                y = {:expected_scc, title = "SC-CO2 (2020 USD)"},
+                color = "dr:o", 
+                column = {:sector, title = nothing}
+            ) |> save(joinpath(output_dir, "scc_groupedSector.png"), ppi = 300)
 
 # undiscounted marginal damages
 df = DataFrame()
@@ -181,8 +186,9 @@ df |>
                         },
                 resolve = {scale = {y = :independent}},
                 :line,
-                x = :variable,
-                y = :value,
+                title =  "Marginal Damages per 1e-4 GtC (n = 1000)",
+                x = {:variable, title = "Year"},
+                y = {:value, title = "Marginal Damages (2020 USD)"},
                 color = :sector,
                 strokeWidth = {"trial", scale = {range = [0.2]}, legend = false}, # hack to get lines to show up differently
                 width = 300,
@@ -227,18 +233,18 @@ for sector in unique(df_quantiles.sector), endyear in [2100,2300]
                         title = "$sector",
                         mark = :line,
                         x = {"variable:q", title = "Year"},
-                        y = {"median:q",title = "Marginal Damages"},
+                        y = {"median:q",title = "Marginal Damages per 1e-4 GtC (n = 1000)"},
                     ),
                     @vlfrag(
                         mark = {:errorband, opacity = 0.1},
                         x = {"variable:q", title = "Year"},
-                        y = {"q05:q", title = "Marginal Damages"},
+                        y = {"q05:q", title = "Marginal Damages per 1e-4 GtC (n = 1000)"},
                         y2 = "q95:q"
                     ),
                     @vlfrag(
                         mark = {:errorband, opacity = 0.3},
                         x = {"variable:q", title = "Year"},
-                        y = {"q25:q", title = "Marginal Damages"},
+                        y = {"q25:q", title = "Marginal Damages per 1e-4 GtC (n = 1000)"},
                         y2 = "q75:q"
                     )
                 ]
@@ -301,7 +307,7 @@ p = df_quantiles |> @vlplot(
                         }) +
                     @vlplot(:rule, x = {
                             "q05:q",
-                            axis = {title = "SC-CO₂ (US\$ per tonne of CO₂)", grid = true}
+                            axis = {title = "SC-CO₂ (US\$ per tonne of CO₂) (n = 1000)", grid = true}
                         },
                         x2 = "q95:q"
                     ) +
