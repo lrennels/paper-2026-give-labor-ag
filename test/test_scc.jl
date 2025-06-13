@@ -357,4 +357,3 @@ p = df_quantiles |> @vlplot(
                         x = "mean:q",
                         color = {value = :black}
             ) |> save(joinpath(output_dir, "scc_2pct_boxplots.png"), ppi = 300)
-
