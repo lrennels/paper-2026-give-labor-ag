@@ -180,7 +180,7 @@ for SSP_scenario in SSP_scenarios
                     title = {fontSize = 8, anchor = :start}
                 },
                 title = ["SC-CO2 | $(SSP_scenario) | No Ag Uncertainty", "Original E[SC-CO2] = $(original_exp_scc) | New E[SC-CO2] = $(new_exp_scc)"],
-                mark = {:circle, size = 20, opacity = 0.7},
+                mark = {:circle, size = 10, opacity = 0.6},
                 x = {:T_2100, title = "GMST Anomaly Relative to 1750 (deg C)"},
                 y = {:scc, title = "SC-CO2"},
                 color = {:version, legend = {symbolOpacity = 1.}},
@@ -442,7 +442,7 @@ df |>   @filter(_.dr == 0.02 && _.sector == "total") |>
                 title = {fontSize = 8, anchor = :start}
             },
             title = ["SC-CO2 | RFFSPs | No Ag Uncertainty", "Original E[SC-CO2] = $(original_exp_scc) | New E[SC-CO2] = $(new_exp_scc)"],
-            mark = {:circle, size = 20, opacity = 0.7},
+            mark = {:circle, size = 10, opacity = 0.6},
             x = {:T_2100, title = "GMST Anomaly Relative to 1750 (deg C)"},
             y = {:scc, title = "SC-CO2"},
             color = {:version, legend = {symbolOpacity = 1.}},
@@ -624,7 +624,7 @@ df |>   @filter(_.dr == 0.02 && _.sector == "total") |>
                 title = {fontSize = 8, anchor = :start}
             },
             title = ["SC-CO2 | RFFSPs | Full Uncertainty", "Original E[SC-CO2] = $(original_exp_scc) | New E[SC-CO2] = $(new_exp_scc)"],
-            mark = {:circle, size = 20, opacity = 0.7},
+            mark = {:circle, size = 10, opacity = 0.6},
             x = {:T_2100, title = "GMST Anomaly Relative to 1750 (deg C)"},
             y = {:scc, title = "SC-CO2"},
             color = {:version, legend = {symbolOpacity = 1.}},
