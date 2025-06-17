@@ -670,3 +670,108 @@ df |> @vlplot(
             color = {:version, legend = {symbolOpacity = 1.}},
             width = 500
     ) |> save(joinpath(top_output_dir, "RFFSPs_FullUncertainty", "temperature.png"), ppi = 300)
+
+## -----------------------------------------------------------------------------
+## SCC Distribution Graphs
+## -----------------------------------------------------------------------------
+
+df = DataFrame()
+
+i = 1
+for category in ["SSP245_NoAgUncertainty", "RFFSPs_NoAgUncertainty", "RFFSPs_FullUncertainty"], version in ["original", "new"]
+
+    df_quantiles = load(joinpath(top_output_dir, category, version, "scc.csv")) |>
+                        @filter(_.dr == 0.02 && _.sector == "agriculture") |>
+                        @mutate(sector = _.sector == "agriculture" ? "Agriculture" : "") |>
+                        @groupby({_.dr, _.sector}) |>
+                        @map({key(_)..., q05 = quantile(_.scc, 0.05), q25 = quantile(_.scc, 0.25), median = quantile(_.scc, 0.5), q75 = quantile(_.scc, 0.75), q95 = quantile(_.scc, 0.95), mean = mean(_.scc)}) |>
+                        DataFrame
+    insertcols!(df_quantiles, :category => category)
+    insertcols!(df_quantiles, :version => version)
+    insertcols!(df_quantiles, :label => "$(category) $(version)")
+    append!(df, df_quantiles)
+end
+
+p = df |> @vlplot(
+                        y = {"label:n", axis = {domain = false, ticks = false, title = nothing, grid = false}, sort = "descending"},
+                        # color = {"version:n", legend = nothing, scale = {range = ["#758aad", "#bfa468", "#7fa89f", "#b38f8d", "#7a946c", "#7B5EA6"]}},
+                        color = {"version:n", scale = {range = ["#758aad", "#bfa468", "#7fa89f", "#b38f8d", "#7a946c", "#7B5EA6"]}},
+                        config = {
+                            font = "Arial",
+                            style = {cell = {stroke = :transparent}},
+                            axis = {
+                                domainColor = :black,
+                                tickColor = :black,
+                                labelFontSize = 7,
+                                labelFlush = false,
+                                titleFontWeight = :normal,
+                                titleFontSize = 7,
+                                gridColor = {
+                                    value = "#ddd"
+                                },
+                                gridOpacity = {
+                                    condition = {
+                                        test = "datum.value===0",
+                                        value = 1
+                                    },
+                                    value = 0
+                                }
+                            },
+                        },
+                        width = 280,
+                        height = {
+                            step = 24
+                        }) +
+                    @vlplot(:rule, x = {
+                            "q05:q",
+                            axis = {title = "SC-CO₂ (US\$ per tonne of CO₂) (n = 1000)", grid = true}
+                        },
+                        x2 = "q95:q"
+                    ) +
+                    @vlplot(
+                        {
+                            :bar,
+                            size = 13
+                        },
+                        x = "q25:q",
+                        x2 = "q75:q"
+                    ) +
+                    @vlplot(
+                        {
+                            :tick,
+                        },
+                        x = "median:q",
+                        color = {
+                            value = :white
+                        },
+                        size = {
+                            condition = {
+                                test = "(datum.q75-datum.q25) < 2",
+                                value = 0
+                            },
+                            value = 13
+                        }
+                    ) +
+                    @vlplot(
+                        {
+                            :text,
+                            fontSize = 7,
+                            dy = -12
+                        },
+                        x = "mean:q",
+                        text = {
+                            "mean:q",
+                            format = "\$.0f"
+                        },
+                        color = {value = :black}
+                    ) +
+                    @vlplot(
+                        {
+                            :point,
+                            shape = :diamond,
+                            strokeWidth = 1
+                        },
+                        x = "mean:q",
+                        color = {value = :black}
+            ) |> save(joinpath(top_output_dir, "scc_evolution.png"), ppi = 300)
+
