@@ -4,7 +4,7 @@ Pkg.activate(joinpath(@__DIR__, ".."))
 using Mimi, VegaLite, Random, Query, DataFrames
 
 const pricelevel_2005_to_2020 = 113.648 / 87.504
-const seed = 12345
+const seed = 24523438
 
 # Load all functions
 include(joinpath(@__DIR__, "..", "src", "main.jl"))
@@ -43,20 +43,37 @@ results = compute_scc(m;
                 pulse_size = 1e-4,
             )
 
-# Process results
+# Save all SCCs
 df_final = DataFrame(scc = Float64[], sector = Symbol[], dr = String[])
 
 for (k, v) in results[:scc]
     df = DataFrame(scc = v.sccs .* pricelevel_2005_to_2020)
     df[!, :sector] .= k.sector
     df[!, :dr] .= k.dr_label
-
     append!(df_final, df)
 end
 
-df_final |> save(joinpath(output_dir, "figure_data.csv"))
+df_final |> save(joinpath(output_dir, "sccs.csv"))
 
-data = load(joinpath(output_dir, "figure_data.csv"), colparsers = Dict(:dr => String)) |> DataFrame
+# Save summary
+
+df_final = DataFrame(expected_scc = Float64[], sector = Symbol[], dr = String[], se_expected_scc = Float64[])
+
+for (k, v) in results[:scc]
+    df = DataFrame(
+                    expected_scc = v.expected_scc .* pricelevel_2005_to_2020,
+                    sector = k.sector,
+                    dr = k.dr_label,
+                    se_expected_scc = v.se_expected_scc .* pricelevel_2005_to_2020
+    )
+    append!(df_final, df)
+end
+
+df_final |> save(joinpath(output_dir, "expected_scc.csv"))
+
+# Save aggregated data for figure
+
+data = load(joinpath(output_dir, "sccs.csv"), colparsers = Dict(:dr => String)) |> DataFrame
 
 aggregated_data = data |>
                         @filter(_.dr == "2.0%") |>
@@ -176,6 +193,7 @@ aggregated_data = data |>
                         @groupby({_.discount_rate, _.sector}) |>
                         @map({key(_)..., q05 = quantile(_.scghg, 0.05), q25 = quantile(_.scghg, 0.25), median = quantile(_.scghg, 0.5), q75 = quantile(_.scghg, 0.75), q95 = quantile(_.scghg, 0.95), mean = mean(_.scghg)}) |>
                         DataFrame
+aggregated_data |> save(joinpath(epa2023_output_dir, "figure3_data_aggregated.csv"))
 
 aggregated_data = load(joinpath(epa2023_output_dir, "figure3_data_aggregated.csv")) |> DataFrame
 
@@ -261,4 +279,4 @@ p = aggregated_data |> @vlplot(
                                color = {value = :black}
                            )
 
-p |> save(joinpath(epa2023_output_dir, "fig.svg"))
+p |> save(joinpath(epa2023_output_dir, "fig3.svg"))
