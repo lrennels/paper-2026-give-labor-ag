@@ -21,7 +21,7 @@ The primary workhorse function is `run_model`, which returns the runnable Mimi m
 
 ```julia
 function get_model(;    agriculture_pctile::Symbol = :mid,
-                        agrish_category::Symbol = :crops,
+                        agrish_category::Symbol = :agriculture,
                         socioeconomics_source::Symbol = :RFF,
                         SSP_scenario::Union{Nothing, String} = nothing,       
                         RFFSPsample::Union{Nothing, Int} = 6546,
