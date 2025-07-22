@@ -13,7 +13,7 @@ include("main.jl")
 ```
 # 2. Analysis
 
-The analysis folder holds all scripts used for the paper. In addition, the `examples.ipynb` notebook gives examples of the main available functionality.
+The analysis folder holds all scripts used for the paper.
 
 # 3. Run Model Function
 
