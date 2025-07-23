@@ -4,7 +4,7 @@ Pkg.activate(joinpath(@__DIR__, ".."))
 using Mimi, VegaLite, Random, Query, DataFrames
 
 const pricelevel_2005_to_2020 = 113.648 / 87.504
-const seed = 24523438
+const seed = 14523438
 
 # Load all functions
 include(joinpath(@__DIR__, "..", "src", "main.jl"))
@@ -13,7 +13,7 @@ include(joinpath(@__DIR__, "..", "src", "main.jl"))
 year = 2020
 num_trials = 10_000
 
-output_dir = joinpath(@__DIR__, "..", "output", "scc", "pulse$(year)_n$(num_trials)")
+output_dir = joinpath(@__DIR__, "..", "output", "scc", "pulse$(year)_n$(num_trials)_seed$(seed)")
 mkpath(output_dir)
 
 discount_rates = [
@@ -56,7 +56,6 @@ end
 df_final |> save(joinpath(output_dir, "sccs.csv"))
 
 # Save summary
-
 df_final = DataFrame(expected_scc = Float64[], sector = Symbol[], dr = String[], se_expected_scc = Float64[])
 
 for (k, v) in results[:scc]
@@ -72,7 +71,6 @@ end
 df_final |> save(joinpath(output_dir, "expected_scc.csv"))
 
 # Save aggregated data for figure
-
 data = load(joinpath(output_dir, "sccs.csv"), colparsers = Dict(:dr => String)) |> DataFrame
 
 aggregated_data = data |>
@@ -91,7 +89,6 @@ aggregated_data = data |>
 aggregated_data |> save(joinpath(output_dir, "figure_data_aggregated.csv"))
 
 # Plot
-
 p = aggregated_data |> @vlplot(
                                y = {"sector:n", axis = {domain = false, ticks = false, title = nothing, grid = false}},
                                color = {"sector:n", legend = nothing, scale = {range = ["#abbcd2", "#f2caa2", "#c2dbd9", "#f1d0cf", "#d9c2e6", "#b5cfac"]}},
@@ -177,7 +174,6 @@ p = aggregated_data |> @vlplot(
 p |> save(joinpath(output_dir, "fig.svg"))
 
 # Plot epa2023 et al. 2022 data
-
 epa2023_output_dir = joinpath(@__DIR__, "..", "output", "epa2023")
 
 data = load(joinpath(epa2023_output_dir, "sc-CO2-give-2020-n10000.csv"), colparsers = Dict(:dr => String)) |> DataFrame
