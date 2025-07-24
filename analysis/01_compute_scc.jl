@@ -4,7 +4,7 @@ Pkg.activate(joinpath(@__DIR__, ".."))
 using Mimi, VegaLite, Random, Query, DataFrames
 
 const pricelevel_2005_to_2020 = 113.648 / 87.504
-const seed = 14523438
+const seed = 24523438
 
 # Load all functions
 include(joinpath(@__DIR__, "..", "src", "main.jl"))
