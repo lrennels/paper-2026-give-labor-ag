@@ -16,6 +16,8 @@ num_trials = 10_000
 output_dir = joinpath(@__DIR__, "..", "output", "scc", "pulse$(year)_n$(num_trials)_seed$(seed)")
 mkpath(output_dir)
 
+epa2023_output_dir = joinpath(@__DIR__, "..", "output", "epa2023")
+
 discount_rates = [
     (label = "1.5%", prtp = exp(9.149606e-05) - 1, eta = 1.016010e+00),
     (label = "2.0%", prtp = exp(0.001972641) - 1, eta = 1.244458999),
@@ -174,7 +176,6 @@ p = aggregated_data |> @vlplot(
 p |> save(joinpath(output_dir, "fig.svg"))
 
 # Plot epa2023 et al. 2022 data
-epa2023_output_dir = joinpath(@__DIR__, "..", "output", "epa2023")
 
 data = load(joinpath(epa2023_output_dir, "sc-CO2-give-2020-n10000.csv"), colparsers = Dict(:dr => String)) |> DataFrame
 
@@ -276,3 +277,101 @@ p = aggregated_data |> @vlplot(
                            )
 
 p |> save(joinpath(epa2023_output_dir, "fig3.svg"))
+
+# Plot our data and EPA data together
+
+aggregated_data_new = load(joinpath(output_dir, "figure_data_aggregated.csv")) |> DataFrame
+aggregated_data_new.dr .= "2.0% Ramsey"
+rename!(aggregated_data_new, :dr => :discount_rate)
+
+aggregated_data_rennert = load(joinpath(epa2023_output_dir, "figure3_data_aggregated.csv")) |>
+                            @filter(_.sector in ["Agriculture", "Total"]) |>
+                            DataFrame
+aggregated_data_rennert.sector = replace(aggregated_data_rennert.sector, "Total" => "Total (Rennert et al. 2022)", "Agriculture" => "Agriculture (Rennert et al. 2022)")
+
+df = vcat(aggregated_data_new, aggregated_data_rennert)
+
+p = df |> @vlplot(
+                               y = {"sector:n", axis = {domain = false, ticks = false, title = nothing, grid = false}},
+                               color = {"sector:n", legend = nothing, scale = {range = ["#6f85a0", "#abbcd2", "#d8d3cd", "#6c8267", "#d8d3cd", "#d8d3cd", "#b58260", "#f2caa2"]}},
+                               config = {
+                                   font = "Arial",
+                                   style = {cell = {stroke = :transparent}},
+                                   axis = {
+                                       domainColor = :black,
+                                       tickColor = :black,
+                                       labelFontSize = 7,
+                                       labelFlush = false,
+                                       titleFontWeight = :normal,
+                                       titleFontSize = 7,
+                                       gridColor = {
+                                           value = "#ddd"
+                                       },
+                                       gridOpacity = {
+                                           condition = {
+                                               test = "datum.value===0",
+                                               value = 1
+                                           },
+                                           value = 0
+                                       }
+                                   },
+                               },
+                               width = 280,
+                               height = {
+                                   step = 25
+                               }) +
+                           @vlplot(:rule, x = {
+                                   "q05:q",
+                                   axis = {title = "SC-CO₂ (US\$ per tonne of CO₂)", grid = true}
+                               },
+                               x2 = "q95:q"
+                           ) +
+                           @vlplot(
+                               {
+                                   :bar,
+                                   size = 13
+                               },
+                               x = "q25:q",
+                               x2 = "q75:q"
+                           ) +
+                           @vlplot(
+                               {
+                                   :tick,
+                               },
+                               x = "median:q",
+                               color = {
+                                   value = :white
+                               },
+                               size = {
+                                   condition = {
+                                       test = "(datum.q75-datum.q25) < 2",
+                                       value = 0
+                                   },
+                                   value = 13
+                               }
+                           ) +
+                           @vlplot(
+                               {
+                                   :text,
+                                   fontSize = 7,
+                                   dy = -12
+                               },
+                               x = "mean:q",
+                               text = {
+                                   "mean:q",
+                                   format = "\$.0f"
+                               },
+                               color = {value = :black}
+                           ) +
+                           @vlplot(
+                               {
+                                   :point,
+                                   shape = :diamond,
+                                   strokeWidth = 1
+                               },
+                               x = "mean:q",
+                               color = {value = :black}
+                           )
+                           
+p |> save(joinpath(output_dir, "grouped_fig.png"), ppi = 300)
+
