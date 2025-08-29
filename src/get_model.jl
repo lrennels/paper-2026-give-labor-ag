@@ -95,8 +95,18 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     set_dimension!(m, :gcm, dimension_gcm.GCM)
 
     # Add new components
+    add_comp!(m, MimiGIVE.GlobalTempNorm, :TempNorm_1995to2015, after = :temperature); # for Labor
     add_comp!(m, Labor, :Labor, after = :CromarMortality, first = damages_first);
     add_comp!(m, Agriculture, :Agriculture, after = :Labor, first = damages_first);
+
+    # --------------------------------------------------------------------------    
+    # Temperature Normlization Components
+    # --------------------------------------------------------------------------
+    
+	# TempNorm_1995to2015 - Normalize temperature to deviation from 1995 to 2015 for Labor Component
+    update_param!(m, :TempNorm_1995to2015, :norm_range_start, 1995)
+    update_param!(m, :TempNorm_1995to2015, :norm_range_end, 2015)
+    connect_param!(m, :TempNorm_1995to2015 => :global_temperature, :temperature => :T)
 
     # --------------------------------------------------------------------------    
     # Labor
@@ -136,7 +146,8 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     # Connections
     connect_param!(m, :Labor => :population, :Socioeconomic => :population)
     connect_param!(m, :Labor => :gdp, :Socioeconomic => :gdp)
-    connect_param!(m, :Labor => :temp, :temperature => :T) # temperature from FaIR so relative to start year of 1750
+    connect_param!(m, :Labor => :temp, :TempNorm_1995to2015 => :global_temperature_norm)
+    # connect_param!(m, :Labor => :temp, :temperature => :T) # temperature from FaIR so relative to start year of 1750
     
     # --------------------------------------------------------------------------    
     # Agriculture
