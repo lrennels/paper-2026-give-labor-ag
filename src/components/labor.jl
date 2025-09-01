@@ -14,14 +14,18 @@ using Mimi
     gtap_impacts = Parameter(index=[country, 7, gcm])  # seven temperature data points per country 1:0.5:4
 
     # Variables
+    temp_normalized = Variable(index = [time], unit="degC") # normalized temperature -- subtract 0.82 deg C to adjust for 1995-2015 basseline
     laborloss_gtap_frac = Variable(index=[time, country]) # fractional loss - intermediate variable for calculating laborcost
     laborcost = Variable(index=[time, country], unit="billion US\$2005/yr")
 
     function run_timestep(p,v,d,t)
+
+        v.temp_normalized[t] = p.temp[t] - 0.82
+
         for c in d.country
 
             # Interpolate using the seven gtap welfare points with the additional origin (0,0) point
-            impact = linear_interpolate([0, p.gtap_impacts[c, :, p.gcm]...], [0., collect(1:0.5:4)...], p.temp[t])
+            impact = linear_interpolate([0, p.gtap_impacts[c, :, p.gcm]...], [0., collect(1:0.5:4)...], v.temp_normalized[t])
             v.laborloss_gtap_frac[t, c] = -1 * impact # take the negative to go from impact to loss
 
             # Calculate total cost for the labor sector based on the fractional loss

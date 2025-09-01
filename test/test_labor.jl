@@ -35,7 +35,7 @@ for ssp in ssps
 
         # T
         if i == 1 # just do this once
-            df = getdataframe(m, :Labor, :temp)
+            df = getdataframe(m, :Labor, :temp_normalized)
             append!(T, df) 
         end
     end
@@ -54,8 +54,8 @@ end
 laborloss_gtap_frac = load(joinpath(output_dir, "laborloss_gtap_frac_SSP245.csv")) |> DataFrame
 laborcost = load(joinpath(output_dir, "laborcost_SSP245.csv")) |> DataFrame
 
-min_val = minimum(laborloss_gtap_frac.temp)
-max_val = maximum(laborloss_gtap_frac.temp)
+min_val = minimum(laborloss_gtap_frac.temp_normalized)
+max_val = maximum(laborloss_gtap_frac.temp_normalized)
 
 # Labor Loss Fraction
 n = 20_000
@@ -65,7 +65,7 @@ laborloss_gtap_frac[thin_rows, :] |>
         title = ["Fractional Loss due to Labor Sector"; "All countries, Colored by GCM"],
         mark = {:circle, size = 5., clip = true},
         color = {"gcm:o", scale = {scheme = :spectral}, legend = {symbolOpacity = 1.}},
-        x = {"temp:q", title = "Temperature Anomaly (deg C)", scale = {domain = (min_val, max_val)}},
+        x = {"temp_normalized:q", title = "Temperature Anomaly (deg C) Relative to 1995-2015", scale = {domain = (min_val, max_val)}},
         y = {"laborloss_gtap_frac", title = "Fractional Loss"}, 
         width = 500, 
         height = 250
@@ -77,7 +77,7 @@ laborloss_gtap_frac |>
         title = ["Fractional Loss due to Labor Sector"; "Model Ensemble only, Colored by Country"],
         mark = {:circle, size = 5, clip = true},
         color = {"country:o", scale = {scheme = :category20}, legend = false},
-        x = {"temp:q", title = "Temperature Anomaly (deg C)", scale = {domain = (min_val, max_val)}},
+        x = {"temp_normalized:q", title = "Temperature Anomaly (deg C) Relative to 1995-2015", scale = {domain = (min_val, max_val)}},
         y = {"laborloss_gtap_frac", title = "Fractional Loss"}, 
         width = 500, 
         height = 250
@@ -91,7 +91,7 @@ laborcost[thin_rows, :] |>
         title = ["Labor Sector Costs"; "All countries, Colored by GCM"],
         mark = {:circle, size = 15., clip = true},
         color = {"gcm:o", scale = {scheme = :spectral}, legend = {symbolOpacity = 1.}},
-        x = {"temp:q", title = "Temperature Anomaly (deg C)", scale = {domain = (min_val, max_val)}},
+        x = {"temp_normalized:q", title = "Temperature Anomaly (deg C) Relative to 1995-2015", scale = {domain = (min_val, max_val)}},
         y = {"laborcost", title = "Labor Cost (billions 2005 USD)"}, 
         width = 500, 
         height = 250
@@ -103,7 +103,7 @@ laborcost |>
         title = ["Labor Sector Costs"; "Model Ensemble only, Colored by Country"],
         mark = {:circle, size = 5., clip = true},
         color = {"country:o", scale = {scheme = :category20}, legend = false},
-        x = {"temp:q", title = "Temperature Anomaly (deg C)", scale = {domain = (min_val, max_val)}},
+        x = {"temp_normalized:q", title = "Temperature Anomaly (deg C) Relative to 1995-2015", scale = {domain = (min_val, max_val)}},
         y = {"laborcost", title = "Labor Cost (billions 2005 USD)"}, 
         width = 500, 
         height = 250
@@ -136,3 +136,4 @@ df |>
         wrap = :country, 
         columns = 4
     ) |> save(joinpath(output_dir, "laborcost_model_ensemble_by_ssp_and_country.png"), ppi = 300)
+    
