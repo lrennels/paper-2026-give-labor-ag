@@ -1,6 +1,6 @@
 using Mimi, VegaLite, Random, Query, DataFrames
 
-output_dir = joinpath(@__DIR__, "..", "output", "scc", "pulse$(year)_n$(num_trials)_seed$(seed)")
+output_dir = joinpath(@__DIR__, "..", "output", "scc", "pulse$(year)_n$(num_trials)_seed$(seed)_withLaborCountrySCCs")
 mkpath(output_dir)
 
 epa2023_output_dir = joinpath(@__DIR__, "..", "output", "epa2023")
@@ -23,6 +23,7 @@ results = compute_scc(m;
                 CIAM_foresight = :perfect,
                 CIAM_GDPcap = true,
                 pulse_size = 1e-4,
+                compute_labor_country_sccs = true
             )
 
 # Save all SCCs
