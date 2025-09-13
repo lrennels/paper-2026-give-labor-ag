@@ -292,7 +292,11 @@ function _compute_scc_mcs(mm::MarginalModel,
     if compute_labor_country_sccs
         result[:labor_country_sccs] = Dict()
         for (k,v) in labor_country_scc_values
-            result[:labor_country_sccs][k] = mean(v, dims = 2)
+            result[:labor_country_sccs][k] = (
+                expected_scc = mean(v, dims = 2),
+                se_expected_scc = std(v, dims = 2) ./ sqrt(n),
+                sccs = v
+            )
         end
     end
 
