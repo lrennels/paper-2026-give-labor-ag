@@ -53,6 +53,35 @@ end
 
 df_final |> save(joinpath(output_dir, "expected_scc.csv"))
 
+# Save labor country-level SCC
+df_final_labor_country = DataFrame(country = String[], trial = Int[], scc = Float64[], dr = String[])
+
+for (k, v) in results[:labor_country_sccs]
+    df = DataFrame(v.sccs .* pricelevel_2005_to_2020, Symbol.(1:num_trials))
+    insertcols!(df, 1, :country => dim_keys(m, :country))
+    df = stack(df, Not(:country), variable_name = :trial, value_name = :scc)
+    df[!, :dr] .= k.dr_label
+    df.trial .= parse.(Int, df.trial)
+    append!(df_final_labor_country, df)
+end
+
+df_final_labor_country |> save(joinpath(output_dir, "sccs_labor_country.csv"))
+
+# Save summary
+df_final_labor_country = DataFrame(country = String[], expected_scc = Float64[], dr = String[], se_expected_scc = Float64[])
+
+for (k, v) in results[:labor_country_sccs]
+    df = DataFrame(
+                    country = dim_keys(m, :country),
+                    expected_scc = vec(v.expected_scc .* pricelevel_2005_to_2020),
+                    dr = k.dr_label,
+                    se_expected_scc = vec(v.se_expected_scc .* pricelevel_2005_to_2020)
+    )
+    append!(df_final_labor_country, df)
+end
+
+df_final_labor_country |> save(joinpath(output_dir, "expected_scc_labor_country.csv"))
+
 # Save aggregated data for figure
 data = load(joinpath(output_dir, "sccs.csv"), colparsers = Dict(:dr => String)) |> DataFrame
 
