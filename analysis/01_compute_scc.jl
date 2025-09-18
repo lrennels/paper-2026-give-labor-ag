@@ -1,6 +1,6 @@
 using Mimi, VegaLite, Random, Query, DataFrames
 
-output_dir = joinpath(@__DIR__, "..", "output", "scc", "pulse$(year)_n$(num_trials)_seed$(seed)")
+output_dir = joinpath(@__DIR__, "..", "output", "scc", "pulse$(year)_n$(num_trials)_seed$(seed)_withLaborCountrySCCs")
 mkpath(output_dir)
 
 epa2023_output_dir = joinpath(@__DIR__, "..", "output", "epa2023")
@@ -23,6 +23,7 @@ results = compute_scc(m;
                 CIAM_foresight = :perfect,
                 CIAM_GDPcap = true,
                 pulse_size = 1e-4,
+                compute_labor_country_sccs = true
             )
 
 # Save all SCCs
@@ -51,6 +52,35 @@ for (k, v) in results[:scc]
 end
 
 df_final |> save(joinpath(output_dir, "expected_scc.csv"))
+
+# Save labor country-level SCC
+df_final_labor_country = DataFrame(country = String[], trial = Int[], scc = Float64[], dr = String[])
+
+for (k, v) in results[:labor_country_sccs]
+    df = DataFrame(v.sccs .* pricelevel_2005_to_2020, Symbol.(1:num_trials))
+    insertcols!(df, 1, :country => dim_keys(m, :country))
+    df = stack(df, Not(:country), variable_name = :trial, value_name = :scc)
+    df[!, :dr] .= k.dr_label
+    df.trial .= parse.(Int, df.trial)
+    append!(df_final_labor_country, df)
+end
+
+df_final_labor_country |> save(joinpath(output_dir, "sccs_labor_country.csv"))
+
+# Save summary
+df_final_labor_country = DataFrame(country = String[], expected_scc = Float64[], dr = String[], se_expected_scc = Float64[])
+
+for (k, v) in results[:labor_country_sccs]
+    df = DataFrame(
+                    country = dim_keys(m, :country),
+                    expected_scc = vec(v.expected_scc .* pricelevel_2005_to_2020),
+                    dr = k.dr_label,
+                    se_expected_scc = vec(v.se_expected_scc .* pricelevel_2005_to_2020)
+    )
+    append!(df_final_labor_country, df)
+end
+
+df_final_labor_country |> save(joinpath(output_dir, "expected_scc_labor_country.csv"))
 
 # Save aggregated data for figure
 data = load(joinpath(output_dir, "sccs.csv"), colparsers = Dict(:dr => String)) |> DataFrame

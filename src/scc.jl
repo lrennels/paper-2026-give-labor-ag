@@ -25,7 +25,8 @@ function compute_scc(m::Model = get_model();
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
             post_mcs_creation_function = nothing,
-            pulse_size::Float64 = 1.
+            pulse_size::Float64 = 1.,
+            compute_labor_country_sccs::Bool = false
         )
 
     hfc_list = [:HFC23, :HFC32, :HFC43_10, :HFC125, :HFC134a, :HFC143a, :HFC227ea, :HFC245fa]
@@ -78,7 +79,8 @@ function compute_scc(m::Model = get_model();
                                 CIAM_foresight = CIAM_foresight,
                                 CIAM_GDPcap = CIAM_GDPcap,
                                 post_mcs_creation_function = post_mcs_creation_function,
-                                pulse_size = pulse_size
+                                pulse_size = pulse_size,
+                                compute_labor_country_sccs = compute_labor_country_sccs
                             )
     end
 end
@@ -181,7 +183,8 @@ function _compute_scc_mcs(mm::MarginalModel,
                             CIAM_foresight::Symbol,
                             CIAM_GDPcap::Bool,
                             post_mcs_creation_function,
-                            pulse_size::Float64
+                            pulse_size::Float64,
+                            compute_labor_country_sccs::Bool
                         )
 
     models = [mm.base, mm.modified]
@@ -215,6 +218,7 @@ function _compute_scc_mcs(mm::MarginalModel,
     md_values = save_md ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in regions, s in sectors) : nothing
     cpc_values = save_cpc ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in [:globe], s in [:total]) : nothing # just global and total for now
     norm_cpc_values_ce = certainty_equivalent ? Dict((region=r, sector=s) => Vector{Float64}(undef, n) for dr in discount_rates, r in [:globe], s in [:total]) : nothing
+    labor_country_scc_values = compute_labor_country_sccs ? Dict((dr_label=dr.label, prtp=dr.prtp, eta=dr.eta) => Array{Union{Float64, Missing}}(undef, 184, n) for dr in discount_rates) : nothing
 
     ciam_base, segment_fingerprints = MimiGIVE.get_ciam(mm.base)
     ciam_modified, _ = MimiGIVE.get_ciam(mm.base)
@@ -230,10 +234,11 @@ function _compute_scc_mcs(mm::MarginalModel,
                 CIAM_foresight=CIAM_foresight,
                 CIAM_GDPcap=CIAM_GDPcap,
                 certainty_equivalent=certainty_equivalent,
-                pulse_size=pulse_size
+                pulse_size=pulse_size,
+                compute_labor_country_sccs=compute_labor_country_sccs
             )
 
-    payload = [scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
+    payload = [scc_values, labor_country_scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
 
     Mimi.set_payload2!(mcs, payload)
 
@@ -248,7 +253,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                     )
 
     # unpack the payload object
-    scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
+    scc_values, labor_country_scc_values,intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
 
     # Construct the returned result object
     result = Dict()
@@ -281,6 +286,18 @@ function _compute_scc_mcs(mm::MarginalModel,
                 sccs = v
             )
         end
+        
+    end
+
+    if compute_labor_country_sccs
+        result[:labor_country_sccs] = Dict()
+        for (k,v) in labor_country_scc_values
+            result[:labor_country_sccs][k] = (
+                expected_scc = mean(v, dims = 2),
+                se_expected_scc = std(v, dims = 2) ./ sqrt(n),
+                sccs = v
+            )
+        end
     end
 
     # add a :mds dictionary, where key value pairs (k,v) are NamedTuples with keys(region, sector) => values are (n x 281 (2020:2300)) matrices
@@ -306,7 +323,7 @@ end
 function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int, tup)
 
     # Unpack the payload object 
-    scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(mcs)
+    scc_values, labor_country_scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(mcs)
 
     # Compute some useful indices
     year_index = findfirst(isequal(year), _model_years)
@@ -349,6 +366,10 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
         agriculture_mds = post_trial_mm[:DamageAggregator, :agriculture_damage]
         energy_mds = post_trial_mm[:DamageAggregator, :energy_damage]
         labor_mds = post_trial_mm[:DamageAggregator, :labor_damage]
+    end
+
+    if options.compute_labor_country_sccs
+        labor_mds_country = post_trial_mm[:DamageAggregator, :damage_labor] .* 1e9 # convert from billion $ to $
     end
 
     # Save marginal damages
@@ -426,5 +447,12 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 intermediate_ce_scc_values[(region=:globe, sector=:slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc    
             end
         end
+
+        # country level labor
+        if options.compute_labor_country_sccs
+            scc = vec(sum(df .* labor_mds_country[year_index:last_year_index,:], dims = 1)) # sum over time dimension, keep country dimension
+            labor_country_scc_values[(dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][:, trialnum] = scc   
+        end 
+
     end # end discount rates loop
 end
