@@ -1,6 +1,12 @@
 library(tidyverse)
 
-gtapruns=read.csv("..\\small data\\From GTAP\\202505_Plants_People_v2.csv")
+# Get the folder this script is in
+script_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
+
+# Build a path relative to the script
+file_path <- file.path(script_dir, "202505_Plants_People_v2.csv")
+
+gtapruns <- read.csv(file_path)
 
 #split into crops and labor damage sectors
 
@@ -19,8 +25,16 @@ crops=crops%>%
 a=ggplot(crops,aes(x=Degrees,y=loss_frac,col=Percentile))+geom_point()+theme_bw()+
   labs(x="Degrees Warming (Above Pre-Industrial)",y="Welfare Loss (Fraction Value Added in Ag)")
 
+script_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
+file_path  <- file.path(script_dir, "a.png")
+ggsave(file_path, plot = a, width = 7, height = 5, dpi = 300)
+
 labor=labor%>%
   mutate(loss_frac=Welfare_in_M_USD/Initial_Income_in_M_USD)
 
 b=ggplot(labor,aes(x=Degrees,y=loss_frac,col=GCM))+geom_point()+theme_bw()+
   labs(x="Degrees Warming (Above Pre-Industrial)",y="Welfare Loss (Fraction Initial Income")
+
+script_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
+file_path  <- file.path(script_dir, "b.png")
+ggsave(file_path, plot = b, width = 7, height = 5, dpi = 300)

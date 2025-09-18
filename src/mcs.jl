@@ -84,17 +84,57 @@ function get_mcs(trials;
     return mcs
 end
 
-function run_mcs(;trials::Int64 = 10000, 
-                            output_dir::Union{String, Nothing} = nothing, 
-                            save_trials::Bool = false,
-                            fair_parameter_set::Symbol = :random,
-                            fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
-                            rffsp_sampling::Symbol = :random,
-                            rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-                            m::Mimi.Model = get_model(), # <-- using a different default model
-                            save_list::Vector = [],
-                            results_in_memory::Bool = true,
-                        )
+"""
+    run_mcs(;   trials::Int64 = 10000, 
+                output_dir::Union{String, Nothing} = nothing, 
+                save_trials::Bool = false,
+                fair_parameter_set::Symbol = :random,
+                fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
+                rffsp_sampling::Symbol = :random,
+                rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
+                m::Mimi.Model = get_model(), # <-- using the default model from this repository, which is a modified/augmented version of GIVE
+                save_list::Vector = [],
+                results_in_memory::Bool = true,
+        )
+
+Return the results of a Monte Carlo Simulation with the defined number of trials
+and save data into the `output_dir` folder, optionally also saving trials if 
+`save_trials` is set to `true.` If no model is provided, use the default model 
+returned by get_model().
+
+- `trials` (default 10,000) - number of trials to be run, used for presampling
+- `output_dir` (default constructed folder name) - folder to hold results 
+- `save_trials` (default false) - whether to save all random variables for all trials to trials.csv 
+- `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be 
+        chosen randomly from the provided sets, while :deterministic means they will 
+        be  based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
+- `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set 
+        to :deterministic, this `n` element vector provides the fair parameter set ids 
+        that will be run, otherwise it is set to `nothing` and ignored.
+- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF 
+        SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they 
+        will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
+- `rffsp_sampling_ids` - (default nothing) - if `rffsp_sampling` is set to :deterministic, 
+        this `n` element vector provides the RFF SP ids that will be run, otherwise it is 
+        set to `nothing` and ignored.
+- `m` (default get_model()) - the model to run the simulation for
+- `save_list` (default []) - which parameters and variables to save for each trial,
+        entered as a vector of Tuples (:component_name, :variable_name)
+- `results_in_memory` (default true) - this should be turned off if you are running 
+        into memory problems, data will be streamed out to disk but not saved in memory 
+        to the mcs object
+"""
+function run_mcs(;  trials::Int64 = 10000, 
+                    output_dir::Union{String, Nothing} = nothing, 
+                    save_trials::Bool = false,
+                    fair_parameter_set::Symbol = :random,
+                    fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
+                    rffsp_sampling::Symbol = :random,
+                    rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
+                    m::Mimi.Model = get_model(), # <-- using the default model from this repository, which is a modified/augmented version of GIVE
+                    save_list::Vector = [],
+                    results_in_memory::Bool = true,
+                )
 
     m = deepcopy(m) # in the case that an `m` was provided, be careful that we don't modify the original
 
