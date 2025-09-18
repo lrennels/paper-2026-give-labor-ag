@@ -72,7 +72,7 @@ end
 
 function get_probdists_gtap_df(filepath, n=1000)
     
-    m = get_model() # TODO admittedly this is overkill but being extremely careful to have the right iso3 order
+    m = get_model() # admittedly this is overkill but being extremely careful to have the right iso3 order
     countries = dim_keys(m, :country) # get the country dimension keys from the model
     region_crosswalk = load(joinpath(@__DIR__, "..", "data", "region_crosswalk.csv")) |> DataFrame
 

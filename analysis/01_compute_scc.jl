@@ -1,11 +1,16 @@
 using Mimi, VegaLite, Random, Query, DataFrames
 
-output_dir = joinpath(@__DIR__, "..", "output", "scc", "pulse$(year)_n$(num_trials)_seed$(seed)_withLaborCountrySCCs")
+# Primary outputs
+output_dir = joinpath(@__DIR__, "..", "output", "scc", "pulse$(year)_n$(num_trials)_seed$(seed)")
 mkpath(output_dir)
 
+# For comparison with EPA (2023) report outputs
 epa2023_output_dir = joinpath(@__DIR__, "..", "output", "epa2023")
 
-# Run model
+## -----------------------------------------------------------------------------
+## Run Model
+## -----------------------------------------------------------------------------
+
 m = get_model(socioeconomics_source = :RFF)
 Random.seed!(seed)
 results = compute_scc(m;
@@ -26,7 +31,10 @@ results = compute_scc(m;
                 compute_labor_country_sccs = true
             )
 
-# Save all SCCs
+## -----------------------------------------------------------------------------
+## Save SCC Results
+## -----------------------------------------------------------------------------
+
 df_final = DataFrame(scc = Float64[], sector = Symbol[], dr = String[])
 
 for (k, v) in results[:scc]
@@ -38,7 +46,7 @@ end
 
 df_final |> save(joinpath(output_dir, "sccs.csv"))
 
-# Save summary
+# Save summary of all SCCs
 df_final = DataFrame(expected_scc = Float64[], sector = Symbol[], dr = String[], se_expected_scc = Float64[])
 
 for (k, v) in results[:scc]
@@ -53,7 +61,11 @@ end
 
 df_final |> save(joinpath(output_dir, "expected_scc.csv"))
 
-# Save labor country-level SCC
+## -----------------------------------------------------------------------------
+## Save country-level Labor SCC Results
+## -----------------------------------------------------------------------------
+
+# Save labor country-level SCCs
 df_final_labor_country = DataFrame(country = String[], trial = Int[], scc = Float64[], dr = String[])
 
 for (k, v) in results[:labor_country_sccs]
@@ -67,7 +79,7 @@ end
 
 df_final_labor_country |> save(joinpath(output_dir, "sccs_labor_country.csv"))
 
-# Save summary
+# Save summary of labor country-level SCCs
 df_final_labor_country = DataFrame(country = String[], expected_scc = Float64[], dr = String[], se_expected_scc = Float64[])
 
 for (k, v) in results[:labor_country_sccs]
@@ -81,6 +93,10 @@ for (k, v) in results[:labor_country_sccs]
 end
 
 df_final_labor_country |> save(joinpath(output_dir, "expected_scc_labor_country.csv"))
+
+## -----------------------------------------------------------------------------
+## Figures
+## -----------------------------------------------------------------------------
 
 # Save aggregated data for figure
 data = load(joinpath(output_dir, "sccs.csv"), colparsers = Dict(:dr => String)) |> DataFrame
@@ -100,7 +116,8 @@ aggregated_data = data |>
 
 aggregated_data |> save(joinpath(output_dir, "figure_data_aggregated.csv"))
 
-# Plot
+# Plot aggregated data
+
 p = aggregated_data |> @vlplot(
                                y = {"sector:n", axis = {domain = false, ticks = false, title = nothing, grid = false}},
                                color = {"sector:n", legend = nothing, scale = {range = ["#abbcd2", "#f2caa2", "#c2dbd9", "#f1d0cf", "#d9c2e6", "#b5cfac"]}},
@@ -185,9 +202,9 @@ p = aggregated_data |> @vlplot(
 
 p |> save(joinpath(output_dir, "fig.svg"))
 
-# Plot epa2023 et al. 2022 data
+# Plot epa2023 data
 
-data = load(joinpath(epa2023_output_dir, "sc-CO2-give-2020-n10000.csv"), colparsers = Dict(:dr => String)) |> DataFrame
+data = load(joinpath(epa2023_output_dir, "sc-CO2-give-2020-n10000.csv"), colparsers = Dict(:dr => String)) |> DataFrame # loaded from the EPA (2023) Github repository replication code
 
 aggregated_data = data |>
                         @filter(_.discount_rate == "2.0% Ramsey") |>
