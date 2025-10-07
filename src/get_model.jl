@@ -148,6 +148,7 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     shares = load(joinpath(@__DIR__, "..", "data", "202505_SectorShare_v2.csv")) |> DataFrame
     agrish0_df = innerjoin(agrish0_df, shares, on = :gtap) # join agriculture share data
 
+    all(agrish0_df.iso3 .== dim_keys(m, :country)) || error("The labor agrish0 dataframe iso3 row order does not match the country dimension keys.")
     update_param!(m, :Agriculture, :agrish0, agrish0_df[!, agrish_category])
 
     # YPC 2017
@@ -160,9 +161,9 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
                 DataFrame
         rename!(ypc, [:variable => :iso3, :value => :ypc])
         ypc.ypc = ypc.ypc .* pricelevel_2011_to_2005 # convert $2011 to $2005
+        sort!(ypc, :iso3) # sort on iso3, but double check this later too
 
     elseif socioeconomics_source == :SSP
-
         SSP = socioeconomics_source == :SSP ? SSP_scenario[1:4] : nothing
         ypc = load(joinpath(@__DIR__, "..", "data", "ypc2017", "Benveniste_$SSP.csv")) |> 
                 DataFrame |>
@@ -170,9 +171,13 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
                 DataFrame
         insertcols!(ypc, :ypc => (1e3 * ypc.gdp) ./ ypc.pop ) # (1e3 * billions of USD) ./ millions of people
         rename!(ypc, :country => :iso3)
+        sort!(ypc, :iso3) # sort on iso3, but double check this later too
+
     end
     df = innerjoin(df, select(ypc, [:iso3, :ypc]), on = :iso3) # join ypc data
-
+    sort!(df, :iso3)
+    
+    all(df.iso3 .== dim_keys(m, :country)) || error("The labor ypc2017 dataframe iso3 row order does not match the country dimension keys.")
     update_param!(m, :Agriculture, :ypc2017, df.ypc)
 
     # GTAP impact fractions
