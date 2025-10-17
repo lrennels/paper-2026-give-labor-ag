@@ -14,6 +14,8 @@ Date: May, 2025
 
 This folder holds per country GDP CSV files for both the RFF-SPs the individual SSPs, to be used as baselines for calculating agriculture share of GDP in the Agriculture component. To produce the `rffsp_ypc2017.csv` file, we mimic the steps taken for the `rffsp_ypc1990.csv` in the RFF-SPs stored on [Zenodo](https://zenodo.org/records/6016583) and created using scripts from Github [here](https://github.com/rffscghg/rff-socioeconomic-projections).
 
+Note that these are in USD 2011. 
+
 ## individual files
 
 - `2025_SectorShare_v2.xlsx` and `202505_SectorShare_v2.csv` hold the information to metadata (former) and directly used (latter) that provides the agricultural share of the economy by (1) select crops (2) all crops.
