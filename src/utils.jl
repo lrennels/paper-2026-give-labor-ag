@@ -60,10 +60,12 @@ function get_labor_gtap_df(filepath::String)
             @filter(_.Scenario == "Labor Only (All Sectors)") |>
             DataFrame
 
-    select!(df, [:Country, :Degrees, :GCM, :Welfare_in_M_USD, :Initial_Income_in_M_USD])
-    insertcols!(df, :impact_fraction => df.Welfare_in_M_USD ./ df.Initial_Income_in_M_USD)
-    select!(df, Not([:Welfare_in_M_USD, :Initial_Income_in_M_USD]))
-
+    select!(df, [:Country, :Degrees, :GCM, :ST_AG_Welfare_in_M_USD, :ST_NONAG_Welfare_in_M_USD, :Initial_Income_in_M_USD])
+    
+    insertcols!(df, :ag_impact_fraction => df.ST_AG_Welfare_in_M_USD ./ df.Initial_Income_in_M_USD)
+    insertcols!(df, :nonag_impact_fraction => df.ST_NONAG_Welfare_in_M_USD ./ df.Initial_Income_in_M_USD)
+    
+    select!(df, Not([:ST_AG_Welfare_in_M_USD, :ST_NONAG_Welfare_in_M_USD, :Initial_Income_in_M_USD]))
     rename!(df, [:Country => :gtap, :Degrees => :temp, :GCM => :gcm])
 
     return df

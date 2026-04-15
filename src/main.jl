@@ -4,6 +4,7 @@ using Mimi
 include("utils.jl")
 
 # components
+include("components/agshare.jl")
 include("components/ag.jl")
 include("components/labor.jl")
 include("components/DamageAggregator.jl")
