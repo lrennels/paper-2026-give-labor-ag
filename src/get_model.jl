@@ -9,6 +9,7 @@ const pricelevel_2011_to_2005 = 87.504/98.164
                 socioeconomics_source::Symbol = :RFF,
                 SSP_scenario::Union{Nothing, String} = nothing,       
                 RFFSPsample::Union{Nothing, Int} = 6546,
+                labor_damage_function::Symbol = :Lancet
             )
 
 Get a model with the given argument settings
@@ -47,12 +48,16 @@ Get a model with the given argument settings
     default run (6546) as the RFFSPs component, and is used for the default ypc2017
     parameter in the agriculture component.
 
+- labor_damage_function (default :Lancet) - specify the damage function to use
+    for labor damages, the options are :Lancet or :ISO
+
 """
 function get_model(;    agriculture_pctile::Symbol = :mid,
                         agrish_category::Symbol = :agriculture,
                         socioeconomics_source::Symbol = :RFF,
                         SSP_scenario::Union{Nothing, String} = nothing,       
                         RFFSPsample::Union{Nothing, Int} = 6546,
+                        labor_damage_function::Symbol = :Lancet
                 )
 
     # Settings 
@@ -112,7 +117,11 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     labor_gtap_df = innerjoin(labor_gtap_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
 
     # 2. Join data to the labels dataframe
-    filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202505_Plants_People_v2.csv")
+    if labor_damage_function == :Lancet
+        filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202505_Plants_People_csv")
+    elseif labor_damage_function == :ISO
+        filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202505_Plants_People_v2.csv")
+    end
     impact = get_labor_gtap_df(filepath)
 
     labor_gtap_df = innerjoin(labor_gtap_df, impact, on = [:gtap, :gcm, :temp]) # join agriculture share data
