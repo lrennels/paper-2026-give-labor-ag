@@ -5,7 +5,6 @@ const pricelevel_2011_to_2005 = 87.504/98.164
 
 """
     get_model(; agriculture_pctile::Symbol = :mid,
-                agrish_category::Symbol = :agriculture,
                 socioeconomics_source::Symbol = :RFF,
                 SSP_scenario::Union{Nothing, String} = nothing,       
                 RFFSPsample::Union{Nothing, Int} = 6546,
@@ -17,9 +16,6 @@ Get a model with the given argument settings
 - agriculture_pctile (default :mid) - specify the `agriculture_pctile` input parameter
     as one of `[:low, :mid, :high]`, indicating which percentile to use. These
     map to low (2.5), mid (50.0) and high (97.5).
-
-- agrish_category (default :agriculture) = specify the option for determining the source of 
-    agriculture share as one of :crops and :agriculture 
 
 - socioeconomics_source (default :RFF) - The options are :RFF, which uses data from 
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
@@ -53,7 +49,6 @@ Get a model with the given argument settings
 
 """
 function get_model(;    agriculture_pctile::Symbol = :mid,
-                        agrish_category::Symbol = :agriculture,
                         socioeconomics_source::Symbol = :RFF,
                         SSP_scenario::Union{Nothing, String} = nothing,       
                         RFFSPsample::Union{Nothing, Int} = 6546,
@@ -115,7 +110,7 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     agrish0_df = innerjoin(agrish0_df, shares, on = :gtap) # join agriculture share data
 
     all(agrish0_df.iso3 .== dim_keys(m, :country)) || error("The labor agrish0 dataframe iso3 row order does not match the country dimension keys.")
-    update_param!(m, :AgricultureShare, :agrish0, agrish0_df[!, agrish_category])
+    update_param!(m, :AgricultureShare, :agrish0, agrish0_df.agriculture)
 
     # YPC 2017
     df = DataFrame(:iso3 => dim_keys(m, :country)) # start with this country list
@@ -222,7 +217,7 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     ag_gtap_df = innerjoin(ag_gtap_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
 
     # 2. Join data to the labels dataframe
-    filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202505_Plants_People_v2.csv")
+    filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202505_Plants_People_Agriculture.csv")
     impact = get_ag_gtap_df(filepath, agriculture_pctile)
     ag_gtap_df = innerjoin(ag_gtap_df, impact, on = [:gtap, :temp]) # join agriculture share data
 

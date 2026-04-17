@@ -30,10 +30,10 @@ The primary workhorse function is `get_model`, which returns the runnable Mimi m
 
 ```julia
 function get_model(;    agriculture_pctile::Symbol = :mid,
-                        agrish_category::Symbol = :agriculture,
                         socioeconomics_source::Symbol = :RFF,
                         SSP_scenario::Union{Nothing, String} = nothing,       
                         RFFSPsample::Union{Nothing, Int} = 6546,
+                        labor_damage_function::String = "Lancet"
                 )
 ```
 
@@ -42,9 +42,6 @@ The key arguments for this function are as follows:
 - `agriculture_pctile` (default :mid) - specify the `agriculture_pctile` input parameter
     as one of `[:low, :mid, :high]`, indicating which percentile to use. These
     map to low (2.5), mid (50.0) and high (97.5).
-
-- `agrish_category` (default :agriculture) = specify the option for determining the source of 
-    agriculture share as one of :crops and :agriculture 
 
 - `socioeconomics_source` (default :RFF) - The options are :RFF, which uses data from 
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
@@ -73,14 +70,18 @@ The key arguments for this function are as follows:
     default run (6546) as the RFFSPs component, and is used for the default ypc2017
     parameter in the agriculture component.
 
+
+- `labor_damage_function` (default "Lancet") - specify the damage function to use
+    for labor damages, the options are "Lancet" or "ISO"
+
 # 4. Monte Carlo Simulations
 
 The `run_mcs` function is the workhorse function for running a Monte Carlo Simulation for this model. It runs a Monte Carlo Simulation mirroring that of the original `GIVE` model, with two additions:
 
-1. For the agriculture component add uncertainty across eahc of the seven coefficients.
+1. For the agriculture component add uncertainty across each of the seven coefficients.
 
 ```julia
-filepath = joinpath(@__DIR__, "..", "data", "gtap_output/202505_Plants_People_v2.csv")
+filepath = joinpath(@__DIR__, "..", "data", "gtap_output/202505_Plants_People_Agriculture.csv")
 countries, ag_sample_stores = get_probdists_gtap_df(filepath, trials)
 
 for coef in [1,2,3,4,5,6,7] # seven coefficients defined with an anonymous dimension

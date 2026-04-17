@@ -62,10 +62,15 @@ function get_labor_gtap_df(filepath::String)
 
     select!(df, [:Country, :Degrees, :GCM, :ST_AG_Welfare_in_M_USD, :ST_NONAG_Welfare_in_M_USD, :Initial_Income_in_M_USD])
     
-    insertcols!(df, :ag_impact_fraction => df.ST_AG_Welfare_in_M_USD ./ df.Initial_Income_in_M_USD)
-    insertcols!(df, :nonag_impact_fraction => df.ST_NONAG_Welfare_in_M_USD ./ df.Initial_Income_in_M_USD)
+    shares = load(joinpath(@__DIR__, "..", "data", "202505_SectorShare_v2.csv")) |> DataFrame
+    rename!(shares, :agriculture => :agriculture_share)
+
+    df = innerjoin(df, shares, on = [:Country => :gtap]) # join agriculture share data
     
-    select!(df, Not([:ST_AG_Welfare_in_M_USD, :ST_NONAG_Welfare_in_M_USD, :Initial_Income_in_M_USD]))
+    insertcols!(df, :ag_impact_fraction => df.ST_AG_Welfare_in_M_USD ./ (df.Initial_Income_in_M_USD .* df.agriculture_share))
+    insertcols!(df, :nonag_impact_fraction => df.ST_NONAG_Welfare_in_M_USD ./ (df.Initial_Income_in_M_USD .* (1 .- df.agriculture_share)))
+    
+    select!(df, Not([:agriculture_share, :ST_AG_Welfare_in_M_USD, :ST_NONAG_Welfare_in_M_USD, :Initial_Income_in_M_USD]))
     rename!(df, [:Country => :gtap, :Degrees => :temp, :GCM => :gcm])
 
     return df
