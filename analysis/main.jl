@@ -18,7 +18,7 @@ discount_rates = [ # from Rennert et al. 2022
     (label = "2.5%", prtp = exp(0.004618784) - 1, eta = 1.421158088),
     (label = "3.0%", prtp = exp(0.007702711) - 1, eta = 1.567899391)
 ]
-labor_functions = [:Lancet, :ISO]
+labor_functions = ["Lancet", "ISO"]
 
 # Run analysis
 @info "Starting SCC analysis at $(now())"
