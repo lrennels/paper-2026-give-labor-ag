@@ -55,9 +55,9 @@ for ssp in ssps
 end
 
 # Load DataFrames for Graphs
-agloss_gtap_frac = load(joinpath(output_dir, "agloss_gtap_frac_SSP245_agrishcrops.csv")) |> DataFrame
-agcost = load(joinpath(output_dir, "agcost_SSP245_agrishcrops.csv")) |> DataFrame
-agrish = load(joinpath(output_dir, "agrish_SSP245_agrishcrops.csv")) |> DataFrame
+agloss_gtap_frac = load(joinpath(output_dir, "agloss_gtap_frac_SSP245.csv")) |> DataFrame
+agcost = load(joinpath(output_dir, "agcost_SSP245.csv")) |> DataFrame
+agrish = load(joinpath(output_dir, "agrish_SSP245.csv")) |> DataFrame
 
 min_val = minimum(agloss_gtap_frac.temp)
 max_val = maximum(agloss_gtap_frac.temp)

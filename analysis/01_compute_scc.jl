@@ -1,5 +1,8 @@
 using Mimi, VegaLite, Random, Query, DataFrames
 
+# Year
+year = 2025
+
 # For comparison with EPA (2023) report outputs
 epa2023_output_dir = joinpath(@__DIR__, "..", "output", "epa2023")
 
@@ -206,7 +209,7 @@ for labor_function in labor_functions
 
     # Plot epa2023 data
 
-    data = load(joinpath(epa2023_output_dir, "sc-CO2-give-2020-n10000.csv"), colparsers = Dict(:dr => String)) |> DataFrame # loaded from the EPA (2023) Github repository replication code
+    data = load(joinpath(epa2023_output_dir, "sc-CO2-give-2025-n10000.csv"), colparsers = Dict(:dr => String)) |> DataFrame # loaded from the EPA (2023) Github repository replication code
 
     aggregated_data = data |>
                             @filter(_.discount_rate == "2.0% Ramsey") |>
