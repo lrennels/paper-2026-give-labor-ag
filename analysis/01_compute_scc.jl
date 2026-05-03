@@ -107,7 +107,7 @@ for labor_function in labor_functions
     data = load(joinpath(output_dir, "sccs.csv"), colparsers = Dict(:dr => String)) |> DataFrame
 
     aggregated_data = data |>
-                            @filter(_.dr == "2.0% Ramsey") |>
+                            @filter(_.dr == "2.0%") |>
                             @mutate(sector =
                                 _.sector == "total" ? "Total" :
                                 _.sector == "energy" ? "Energy" :

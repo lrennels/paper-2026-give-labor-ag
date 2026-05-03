@@ -159,7 +159,7 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     labor_gtap_df = innerjoin(labor_gtap_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
 
     # 2. Join data to the labels dataframe
-    filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202604_Plants_People_$(labor_damage_function)_Revision.csv")
+    filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "20260428_Plants_People_results_v4_$(labor_damage_function)_Revision.csv")
     impact = get_labor_gtap_df(filepath)
 
     labor_gtap_df = innerjoin(labor_gtap_df, impact, on = [:gtap, :gcm, :temp]) # join agriculture share data

@@ -18,7 +18,7 @@ discount_rates = [
                     (label = "2.5%", prtp = exp(0.004618784) - 1, eta = 1.421158088),
                     (label = "3.0%", prtp = exp(0.007702711) - 1, eta = 1.567899391)
                 ] # Rennert et al. 2022
-labor_functions = ["ISO"]
+labor_functions = ["ISO", "Lancet"]
 
 # Run analysis
 
