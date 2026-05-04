@@ -1,10 +1,10 @@
 using Mimi, VegaLite, Random, Query, DataFrames
 
-output_dir = joinpath(@__DIR__, "..", "output", "ag_scc_evolution", "pulse$(year)_n$(num_trials)_seed$(seed)")
-mkpath(output_dir)
-
 # Year
 year = 2020
+
+output_dir = joinpath(@__DIR__, "..", "output", "ag_scc_evolution", "pulse$(year)_n$(num_trials)_seed$(seed)")
+mkpath(output_dir)
 
 # Functions to remove agriculture uncertainty
 function remove_ag_original(mcs)
