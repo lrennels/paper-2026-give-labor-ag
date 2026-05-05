@@ -5,10 +5,10 @@ const pricelevel_2011_to_2005 = 87.504/98.164
 
 """
     get_model(; agriculture_pctile::Symbol = :mid,
-                agrish_category::Symbol = :agriculture,
                 socioeconomics_source::Symbol = :RFF,
                 SSP_scenario::Union{Nothing, String} = nothing,       
                 RFFSPsample::Union{Nothing, Int} = 6546,
+                labor_damage_function::String = "Lancet"
             )
 
 Get a model with the given argument settings
@@ -16,9 +16,6 @@ Get a model with the given argument settings
 - agriculture_pctile (default :mid) - specify the `agriculture_pctile` input parameter
     as one of `[:low, :mid, :high]`, indicating which percentile to use. These
     map to low (2.5), mid (50.0) and high (97.5).
-
-- agrish_category (default :agriculture) = specify the option for determining the source of 
-    agriculture share as one of :crops and :agriculture 
 
 - socioeconomics_source (default :RFF) - The options are :RFF, which uses data from 
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
@@ -47,12 +44,15 @@ Get a model with the given argument settings
     default run (6546) as the RFFSPs component, and is used for the default ypc2017
     parameter in the agriculture component.
 
+- labor_damage_function (default "Lancet") - specify the damage function to use
+    for labor damages, the options are "Lancet" or "ISO"
+
 """
 function get_model(;    agriculture_pctile::Symbol = :mid,
-                        agrish_category::Symbol = :agriculture,
                         socioeconomics_source::Symbol = :RFF,
                         SSP_scenario::Union{Nothing, String} = nothing,       
                         RFFSPsample::Union{Nothing, Int} = 6546,
+                        labor_damage_function::String = "Lancet"
                 )
 
     # Settings 
@@ -95,61 +95,22 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     set_dimension!(m, :gcm, dimension_gcm.GCM)
 
     # Add new components
-    add_comp!(m, Labor, :Labor, after = :CromarMortality, first = damages_first);
+    add_comp!(m, AgricultureShare, :AgricultureShare, after = :CromarMortality, first = damages_first);
+    add_comp!(m, Labor, :Labor, after = :AgricultureShare, first = damages_first);
     add_comp!(m, Agriculture, :Agriculture, after = :Labor, first = damages_first);
 
     # --------------------------------------------------------------------------    
-    # Labor
+    # Agriculture Share
     # --------------------------------------------------------------------------
 
-    # GTAP impact fractions
-
-    # 1. Create an empty dataframe with all the labels
-    labor_gtap_df = DataFrame()
-    for iso3 in dim_keys(m, :country), gcm in dim_keys(m, :gcm), temp in collect(1.:0.5:4.)
-        append!(labor_gtap_df, DataFrame(:iso3 => iso3, :gcm => gcm, :temp => temp))
-    end
-    labor_gtap_df = innerjoin(labor_gtap_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
-
-    # 2. Join data to the labels dataframe
-    filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202505_Plants_People_v2.csv")
-    impact = get_labor_gtap_df(filepath)
-
-    labor_gtap_df = innerjoin(labor_gtap_df, impact, on = [:gtap, :gcm, :temp]) # join agriculture share data
-    select!(labor_gtap_df, Not(:gtap))
-
-    # 3. Turn the dataframe into a matrix
-    labor_gtap = Array{Float64}(undef, length(dim_keys(m, :country)), 7, length(dim_keys(m, :gcm)))
-    for (i, gcm) in enumerate(dim_keys(m, :gcm))
-        df = labor_gtap_df |> @filter(_.gcm == gcm) |> DataFrame
-        select!(df, Not(:gcm))
-        df = unstack(df, :temp, :impact_fraction)
-
-        # some checks on dimensions
-        all(df.iso3 .== dim_keys(m, :country)) || error("The labor gtap dataframe iso3 row order does not match the country dimension keys.")
-        all(names(df)[2:end] .== string.(collect(1.:0.5:4.))) || error("The labor gtap dataframe column order does not match the temperature keys.")
-
-        labor_gtap[:, :, i] = df[!, 2:end] |> Matrix
-    end
-    update_param!(m, :Labor, :gtap_impacts, labor_gtap)
-
-    # Connections
-    connect_param!(m, :Labor => :population, :Socioeconomic => :population)
-    connect_param!(m, :Labor => :gdp, :Socioeconomic => :gdp)
-    connect_param!(m, :Labor => :temp, :temperature => :T) # temperature from FaIR so relative to start year of 1750
-
-    # --------------------------------------------------------------------------    
-    # Agriculture
-    # --------------------------------------------------------------------------
-
-    # Agriculture share
+    # share
     agrish0_df = DataFrame(:iso3 => dim_keys(m, :country)) # start with the country list
     agrish0_df = innerjoin(agrish0_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
     shares = load(joinpath(@__DIR__, "..", "data", "202505_SectorShare_v2.csv")) |> DataFrame
     agrish0_df = innerjoin(agrish0_df, shares, on = :gtap) # join agriculture share data
 
     all(agrish0_df.iso3 .== dim_keys(m, :country)) || error("The labor agrish0 dataframe iso3 row order does not match the country dimension keys.")
-    update_param!(m, :Agriculture, :agrish0, agrish0_df[!, agrish_category])
+    update_param!(m, :AgricultureShare, :agrish0, agrish0_df.agriculture)
 
     # YPC 2017
     df = DataFrame(:iso3 => dim_keys(m, :country)) # start with this country list
@@ -178,7 +139,73 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     sort!(df, :iso3)
     
     all(df.iso3 .== dim_keys(m, :country)) || error("The labor ypc2017 dataframe iso3 row order does not match the country dimension keys.")
-    update_param!(m, :Agriculture, :ypc2017, df.ypc)
+    update_param!(m, :AgricultureShare, :ypc2017, df.ypc)
+
+    # Connections
+    connect_param!(m, :AgricultureShare => :population, :Socioeconomic => :population)
+    connect_param!(m, :AgricultureShare => :gdp, :Socioeconomic => :gdp)
+
+    # --------------------------------------------------------------------------    
+    # Labor
+    # --------------------------------------------------------------------------
+
+    # GTAP impact fractions
+
+    # 1. Create an empty dataframe with all the labels
+    labor_gtap_df = DataFrame()
+    for iso3 in dim_keys(m, :country), gcm in dim_keys(m, :gcm), temp in collect(1.:0.5:4.)
+        append!(labor_gtap_df, DataFrame(:iso3 => iso3, :gcm => gcm, :temp => temp))
+    end
+    labor_gtap_df = innerjoin(labor_gtap_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
+
+    # 2. Join data to the labels dataframe
+    filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "20260428_Plants_People_results_v4_$(labor_damage_function)_Revision.csv")
+    impact = get_labor_gtap_df(filepath)
+
+    labor_gtap_df = innerjoin(labor_gtap_df, impact, on = [:gtap, :gcm, :temp]) # join agriculture share data
+    select!(labor_gtap_df, Not(:gtap))
+
+    # 3. Turn the dataframe into two matrices
+
+    # ag
+    labor_ag_gtap = Array{Float64}(undef, length(dim_keys(m, :country)), 7, length(dim_keys(m, :gcm)))
+    for (i, gcm) in enumerate(dim_keys(m, :gcm))
+        df = labor_gtap_df |> @filter(_.gcm == gcm) |> DataFrame
+        select!(df, Not(:gcm, :nonag_impact_fraction)) # remove non ag column and repetitive gcm column
+        df = unstack(df, :temp, :ag_impact_fraction)
+
+        # some checks on dimensions
+        all(df.iso3 .== dim_keys(m, :country)) || error("The labor gtap dataframe iso3 row order does not match the country dimension keys.")
+        all(names(df)[2:end] .== string.(collect(1.:0.5:4.))) || error("The labor gtap dataframe column order does not match the temperature keys.")
+
+        labor_ag_gtap[:, :, i] = df[!, 2:end] |> Matrix
+    end
+    update_param!(m, :Labor, :gtap_ag_impacts, labor_ag_gtap)
+
+    # non ag
+    labor_nonag_gtap = Array{Float64}(undef, length(dim_keys(m, :country)), 7, length(dim_keys(m, :gcm)))
+    for (i, gcm) in enumerate(dim_keys(m, :gcm))
+        df = labor_gtap_df |> @filter(_.gcm == gcm) |> DataFrame
+        select!(df, Not(:gcm, :ag_impact_fraction)) # remove ag column and repetitive gcm column
+        df = unstack(df, :temp, :nonag_impact_fraction)
+
+        # some checks on dimensions
+        all(df.iso3 .== dim_keys(m, :country)) || error("The labor gtap dataframe iso3 row order does not match the country dimension keys.")
+        all(names(df)[2:end] .== string.(collect(1.:0.5:4.))) || error("The labor gtap dataframe column order does not match the temperature keys.")
+
+        labor_nonag_gtap[:, :, i] = df[!, 2:end] |> Matrix
+    end
+    update_param!(m, :Labor, :gtap_nonag_impacts, labor_nonag_gtap)
+
+    # Connections
+    connect_param!(m, :Labor => :population, :Socioeconomic => :population)
+    connect_param!(m, :Labor => :gdp, :Socioeconomic => :gdp)
+    connect_param!(m, :Labor => :temp, :temperature => :T) # temperature from FaIR so relative to start year of 1750
+    connect_param!(m, :Labor => :agrish, :AgricultureShare => :agrish)
+
+    # --------------------------------------------------------------------------    
+    # Agriculture
+    # --------------------------------------------------------------------------
 
     # GTAP impact fractions
 
@@ -190,7 +217,7 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     ag_gtap_df = innerjoin(ag_gtap_df, select(region_crosswalk, [:iso3, :gtap]), on = :iso3) # join gtap labels
 
     # 2. Join data to the labels dataframe
-    filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202505_Plants_People_v2.csv")
+    filepath = joinpath(@__DIR__, "..", "data", "gtap_output", "202505_Plants_People_Agriculture.csv")
     impact = get_ag_gtap_df(filepath, agriculture_pctile)
     ag_gtap_df = innerjoin(ag_gtap_df, impact, on = [:gtap, :temp]) # join agriculture share data
 
@@ -205,9 +232,9 @@ function get_model(;    agriculture_pctile::Symbol = :mid,
     update_param!(m, :Agriculture, :gtap_impacts, ag_gtap)
 
     # Connections
-    connect_param!(m, :Agriculture => :population, :Socioeconomic => :population)
     connect_param!(m, :Agriculture => :gdp, :Socioeconomic => :gdp)
     connect_param!(m, :Agriculture => :temp, :temperature => :T) # temperature from FaIR so relative to start year of 1750
+    connect_param!(m, :Agriculture => :agrish, :AgricultureShare => :agrish)
 
     # --------------------------------------------------------------------------    
     # Damage Aggregator

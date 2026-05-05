@@ -10,16 +10,20 @@ const seed = 24523438 # set any seed for reproducibility
 include(joinpath(@__DIR__, "..", "src", "main.jl"))
 
 # Settings
-year = 2020 # emissions year
 num_trials = 10_000
-discount_rates = [ # from Rennert et al. 2022
-    (label = "1.5%", prtp = exp(9.149606e-05) - 1, eta = 1.016010e+00),
-    (label = "2.0%", prtp = exp(0.001972641) - 1, eta = 1.244458999),
-    (label = "2.5%", prtp = exp(0.004618784) - 1, eta = 1.421158088),
-    (label = "3.0%", prtp = exp(0.007702711) - 1, eta = 1.567899391)
-]
+discount_rates = [
+                    (label = "1.5%", prtp = exp(9.149606e-05) - 1, eta = 1.016010e+00),
+                    (label = "2.0%", prtp = exp(0.001972641) - 1, eta = 1.244458999),
+                    (label = "2.5%", prtp = exp(0.004618784) - 1, eta = 1.421158088),
+                    (label = "3.0%", prtp = exp(0.007702711) - 1, eta = 1.567899391)
+                ] # Rennert et al. 2022
+labor_functions = ["ISO", "Lancet"]
 
 # Run analysis
+
+@info "Starting epa 2023 analysis at $(now())"
+include("00_epa2023.jl")
+
 @info "Starting SCC analysis at $(now())"
 include("01_compute_scc.jl")
 

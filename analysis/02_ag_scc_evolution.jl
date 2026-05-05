@@ -1,5 +1,8 @@
 using Mimi, VegaLite, Random, Query, DataFrames
 
+# Year
+year = year
+
 output_dir = joinpath(@__DIR__, "..", "output", "ag_scc_evolution", "pulse$(year)_n$(num_trials)_seed$(seed)")
 mkpath(output_dir)
 
@@ -38,7 +41,7 @@ update_param!(m, :DamageAggregator, :include_energy, false)
 
 Random.seed!(seed)
 results = MimiGIVE.compute_scc(m;
-                        year = 2020,
+                        year = year,
                         n = num_trials,
                         discount_rates = discount_rates,
                         compute_sectoral_values = true,
@@ -72,7 +75,7 @@ update_param!(m, :DamageAggregator, :include_labor, false)
 
 Random.seed!(seed)
 results = compute_scc(m;
-                        year = 2020,
+                        year = year,
                         n = num_trials,
                         discount_rates = discount_rates,
                         compute_sectoral_values = true,
@@ -109,7 +112,7 @@ update_param!(m, :DamageAggregator, :include_energy, false)
 
 Random.seed!(seed)
 results = MimiGIVE.compute_scc(m;
-                        year = 2020,
+                        year = year,
                         n = num_trials,
                         discount_rates = discount_rates,
                         compute_sectoral_values = true,
@@ -143,7 +146,7 @@ update_param!(m, :DamageAggregator, :include_labor, false)
 
 Random.seed!(seed)
 results = compute_scc(m;
-                        year = 2020,
+                        year = year,
                         n = num_trials,
                         discount_rates = discount_rates,
                         compute_sectoral_values = true,
@@ -180,7 +183,7 @@ update_param!(m, :DamageAggregator, :include_energy, false)
 
 Random.seed!(seed)
 results = MimiGIVE.compute_scc(m;
-                        year = 2020,
+                        year = year,
                         n = num_trials,
                         discount_rates = discount_rates,
                         compute_sectoral_values = true,
@@ -213,7 +216,7 @@ update_param!(m, :DamageAggregator, :include_labor, false)
 
 Random.seed!(seed)
 results = compute_scc(m;
-                        year = 2020,
+                        year = year,
                         n = num_trials,
                         discount_rates = discount_rates,
                         compute_sectoral_values = true,

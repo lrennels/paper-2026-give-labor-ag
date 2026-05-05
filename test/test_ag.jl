@@ -8,59 +8,56 @@ include(joinpath(@__DIR__, "..", "src", "main.jl"))
 
 # Options
 pctiles = [:low, :mid, :high]
-agrish_categories = [:crops, :agriculture]
 ssps = ["SSP126", "SSP245", "SSP370", "SSP585"]
 
 # Run model
 for ssp in ssps
-    for agrish_category in agrish_categories
 
-        agrish = DataFrame()
-        agloss_gtap_frac = DataFrame()
-        agcost = DataFrame()
-        T = DataFrame()
+    agrish = DataFrame()
+    agloss_gtap_frac = DataFrame()
+    agcost = DataFrame()
+    T = DataFrame()
 
-        for (i, pctile) in enumerate(pctiles)
+    for (i, pctile) in enumerate(pctiles)
 
-            m = get_model(; agriculture_pctile = pctile, socioeconomics_source = :SSP, SSP_scenario = ssp)
-            run(m)
+        m = get_model(; agriculture_pctile = pctile, socioeconomics_source = :SSP, SSP_scenario = ssp)
+        run(m)
 
-            # labor loss fraction
-            df = getdataframe(m, :Agriculture, :agloss_gtap_frac) |> @filter(_.time > 2019) |> DataFrame
-            insertcols!(df, :pctile => pctile)
-            append!(agloss_gtap_frac, df)    
+        # labor loss fraction
+        df = getdataframe(m, :Agriculture, :agloss_gtap_frac) |> @filter(_.time > 2019) |> DataFrame
+        insertcols!(df, :pctile => pctile)
+        append!(agloss_gtap_frac, df)    
 
-            # ag cost
-            df = getdataframe(m, :Agriculture, :agcost) |> @filter(_.time > 2019) |> DataFrame
-            insertcols!(df, :pctile => pctile)
-            append!(agcost, df) 
+        # ag cost
+        df = getdataframe(m, :Agriculture, :agcost) |> @filter(_.time > 2019) |> DataFrame
+        insertcols!(df, :pctile => pctile)
+        append!(agcost, df) 
 
-            # T
-            if i == 1 # just do this once
-                df = getdataframe(m, :Agriculture, :temp)
-                append!(T, df) 
+        # T
+        if i == 1 # just do this once
+            df = getdataframe(m, :Agriculture, :temp)
+            append!(T, df) 
 
-                df = getdataframe(m, :Agriculture, :agrish) |> @filter(_.time > 2019) |> DataFrame
-                append!(agrish, df)    
+            df = getdataframe(m, :Agriculture, :agrish) |> @filter(_.time > 2019) |> DataFrame
+            append!(agrish, df)    
 
-            end
         end
-
-        # Join temperature
-        agloss_gtap_frac = innerjoin(agloss_gtap_frac, T, on = [:time])
-        agcost = innerjoin(agcost, T, on = [:time])
-
-        # Save CSVs
-        agloss_gtap_frac |> save(joinpath(output_dir, "agloss_gtap_frac_$(ssp)_agrish$(agrish_category).csv"))
-        agcost |> save(joinpath(output_dir, "agcost_$(ssp)_agrish$(agrish_category).csv"))
-        agrish |> save(joinpath(output_dir, "agrish_$(ssp)_agrish$(agrish_category).csv"))
     end
+
+    # Join temperature
+    agloss_gtap_frac = innerjoin(agloss_gtap_frac, T, on = [:time])
+    agcost = innerjoin(agcost, T, on = [:time])
+
+    # Save CSVs
+    agloss_gtap_frac |> save(joinpath(output_dir, "agloss_gtap_frac_$(ssp).csv"))
+    agcost |> save(joinpath(output_dir, "agcost_$(ssp).csv"))
+    agrish |> save(joinpath(output_dir, "agrish_$(ssp).csv"))
 end
 
 # Load DataFrames for Graphs
-agloss_gtap_frac = load(joinpath(output_dir, "agloss_gtap_frac_SSP245_agrishcrops.csv")) |> DataFrame
-agcost = load(joinpath(output_dir, "agcost_SSP245_agrishcrops.csv")) |> DataFrame
-agrish = load(joinpath(output_dir, "agrish_SSP245_agrishcrops.csv")) |> DataFrame
+agloss_gtap_frac = load(joinpath(output_dir, "agloss_gtap_frac_SSP245.csv")) |> DataFrame
+agcost = load(joinpath(output_dir, "agcost_SSP245.csv")) |> DataFrame
+agrish = load(joinpath(output_dir, "agrish_SSP245.csv")) |> DataFrame
 
 min_val = minimum(agloss_gtap_frac.temp)
 max_val = maximum(agloss_gtap_frac.temp)
