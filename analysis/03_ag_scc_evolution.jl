@@ -33,7 +33,6 @@ end
 ## -----------------------------------------------------------------------------
 
 # Original
-
 m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
 update_param!(m, :DamageAggregator, :include_slr, false)
 update_param!(m, :DamageAggregator, :include_cromar_mortality, false)
@@ -66,7 +65,6 @@ end
 df |> @filter(_.sector == :agriculture) |> save(joinpath(output_dir, "SSP245_NoAgUncertainty_original_ag_scc.csv"))
 
 # New
-
 m = get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
 update_param!(m, :DamageAggregator, :include_slr, false)
 update_param!(m, :DamageAggregator, :include_cromar_mortality, false)
@@ -104,7 +102,6 @@ df |> @filter(_.sector == :agriculture) |> save(joinpath(output_dir, "SSP245_NoA
 ## -----------------------------------------------------------------------------
 
 # Original
-
 m = MimiGIVE.get_model()
 update_param!(m, :DamageAggregator, :include_slr, false)
 update_param!(m, :DamageAggregator, :include_cromar_mortality, false)
@@ -137,7 +134,6 @@ end
 df |> @filter(_.sector == :agriculture) |> save(joinpath(output_dir, "RFFSPs_NoAgUncertainty_original_ag_scc.csv"))
 
 # New
-
 m = get_model()
 update_param!(m, :DamageAggregator, :include_slr, false)
 update_param!(m, :DamageAggregator, :include_cromar_mortality, false)
@@ -175,7 +171,6 @@ df |> @filter(_.sector == :agriculture) |> save(joinpath(output_dir, "RFFSPs_NoA
 ## -----------------------------------------------------------------------------
 
 # Original
-
 m = MimiGIVE.get_model()
 update_param!(m, :DamageAggregator, :include_slr, false)
 update_param!(m, :DamageAggregator, :include_cromar_mortality, false)
@@ -207,7 +202,6 @@ end
 df |> @filter(_.sector == :agriculture) |> save(joinpath(output_dir, "RFFSPs_FullUncertainty_original_ag_scc.csv"))
 
 # New
-
 m = get_model()
 update_param!(m, :DamageAggregator, :include_slr, false)
 update_param!(m, :DamageAggregator, :include_cromar_mortality, false)
@@ -266,7 +260,6 @@ for dr in unique(df.dr)
 df |>   @filter(_.dr == dr) |>
         @vlplot(  
                         y = {"label:n", axis = {domain = false, ticks = false, title = nothing, grid = false}, sort = "descending"},
-                        # color = {"version:n", legend = nothing, scale = {range = ["#758aad", "#bfa468", "#7fa89f", "#b38f8d", "#7a946c", "#7B5EA6"]}},
                         color = {"version:n", scale = {range = ["#758aad", "#bfa468", "#7fa89f", "#b38f8d", "#7a946c", "#7B5EA6"]}},
                         config = {
                             font = "Arial",
@@ -347,4 +340,3 @@ df |>   @filter(_.dr == dr) |>
                         color = {value = :black}
             ) |> save(joinpath(output_dir, "scc_evolution_dr$(dr).png"), ppi = 300)
 end
-

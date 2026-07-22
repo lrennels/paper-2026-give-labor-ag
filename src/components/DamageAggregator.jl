@@ -1,15 +1,9 @@
 using Mimi
 
 # Aggregate damages across damage functions
-# Adapted from MimiGIVE.jl to (1) add labor category (2) remove some intermediates
-# such as domestic calculations and calculations with fund regions that accomodated
-# agriculture at the FUND region scale.
+# Adapted from MimiGIVE DamageAggregator.jl
 
 @defcomp DamageAggregator begin
-
-    country = Index()
-    energy_countries = Index()
-    domestic_countries = Index()
 
     # inclusion of different damages
 

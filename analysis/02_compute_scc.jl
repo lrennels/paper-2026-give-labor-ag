@@ -122,7 +122,6 @@ for labor_function in labor_functions
     aggregated_data |> save(joinpath(output_dir, "figure_data_aggregated.csv"))
 
     # Plot aggregated data
-
     p = aggregated_data |> @vlplot(
                                 y = {"sector:n", axis = {domain = false, ticks = false, title = nothing, grid = false}},
                                 color = {"sector:n", legend = nothing, scale = {range = ["#abbcd2", "#f2caa2", "#c2dbd9", "#f1d0cf", "#d9c2e6", "#b5cfac"]}},
@@ -208,8 +207,7 @@ for labor_function in labor_functions
     p |> save(joinpath(output_dir, "fig.svg"))
 
     # Plot epa2023 data
-
-    data = load(joinpath(epa2023_output_dir, "sc-CO2-give-2025-n10000.csv"), colparsers = Dict(:dr => String)) |> DataFrame # loaded from the EPA (2023) Github repository replication code
+    data = load(joinpath(epa2023_output_dir, "sc-CO2-give-2025-n$num_trials.csv"), colparsers = Dict(:dr => String)) |> DataFrame # loaded from the EPA (2023) Github repository replication code
 
     aggregated_data = data |>
                             @filter(_.discount_rate == "2.0% Ramsey") |>
@@ -311,7 +309,6 @@ for labor_function in labor_functions
     p |> save(joinpath(epa2023_output_dir, "fig3.svg"))
 
     # Plot our data and EPA data together
-
     aggregated_data_new = load(joinpath(output_dir, "figure_data_aggregated.csv")) |> DataFrame
     aggregated_data_new.dr .= "2.0% Ramsey"
     rename!(aggregated_data_new, :dr => :discount_rate)

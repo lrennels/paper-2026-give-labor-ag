@@ -4,9 +4,9 @@ using Mimi
 include("utils.jl")
 
 # components
-include("components/agshare.jl")
-include("components/ag.jl")
-include("components/labor.jl")
+include("components/AgricultureShare.jl")
+include("components/Agriculture.jl")
+include("components/Labor.jl")
 include("components/DamageAggregator.jl")
 
 # get model

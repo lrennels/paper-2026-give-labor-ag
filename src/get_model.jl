@@ -38,8 +38,8 @@ Get a model with the given argument settings
         from 2020 onwards, while emissions for CO2, CH4, and N2O will come from
         the MimiRFFSPs component.
 
-- RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
-    the sample for which to run the RFF SP. See the RFFSPs component here: 
+- RFFSPsample (default 6546) - choose
+    the sample for which to run the RFF SP. See the RFFSPs component here:
     https://github.com/rffscghg/MimiRFFSPs.jl. This will default to the same 
     default run (6546) as the RFFSPs component, and is used for the default ypc2017
     parameter in the agriculture component.

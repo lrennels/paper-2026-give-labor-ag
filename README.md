@@ -1,32 +1,45 @@
-# Labor and Agriculture Damages -- a Modified GIVE Model
+# paper-2026-give-labor-ag
 
-This repository holds scripts and analysis to modify the Greenhouse Gas Impact Valuation Estimator (GIVE) model (Rennert et al. 2022) with (1) and updated agriculture sector damage function and (2) a labor sector damage function for publication in Moore et al. (?)
+This repository holds scripts and analysis to modify the Greenhouse Gas Impact Valuation Estimator (GIVE) model (Rennert et al., 2022) with (1) an updated agriculture sector damage function and (2) a labor sector damage function for publication in Moore et al. (2026).
 
-# 1. Preparing the Software Environment
+# Requirements
 
-You need to install [Julia](https://julialang.org/) to run this model. You also may want to use the official IDE for Julia, [Visual Studio Code](https://code.visualstudio.com).
+1. Julia is free and available for download [here](https://julialang.org/). Estimation was performed on Julia 1.12.5. While newer versions of Julia are compatible with all the code, the random number generators were updated and results might not be identical due to differences in the random parameters underlying the Monte Carlo runs. Install Julia and ensure that it can be invoked (run) from where the replication repository is to be cloned ("in your path").
 
-Once you download Julia, navigating to the top `src` folder and running the `main.jl` script will include all functions and structures you need to run the model. 
+2. Optional: Visual Studio Code (VScode) [here](https://code.visualstudio.com) is an excellent IDE for use with Julia.
 
-```julia
-include("main.jl")
+3. Optional: Github is free and available for download [here](https://github.com/git-guides/install-git). Github is used to house this repository and by installing and using it to clone the repository one will simplify the replication procedure. However, a user could also simply download a zipped file version of this repository, unzip in the desired location, and follow the replication procedures outlined below.
+
+# 1. Getting Started
+
+Begin by cloning or downloading a copy of this repository. This can be done by clicking on the green "code" button in this repository and following those instructions, or by navigating in the terminal via the command line to the desired location of the cloned repository and then typing:
 ```
-# 2. Analysis
+git clone https://github.com/lrennels/paper-2026-give-labor-ag
+```
+Alternatively, you can make a fork of this repository and work from the fork in the same way. This allows for development on the fork while preserving its relationship with this repository.
 
-The analysis folder holds all scripts used for the paper. Users may run
+# Code and Model Structure
+
+## Run Main Analysis
+The `analysis` folder holds all scripts used for the paper. From within the `analysis` folder, users may start a Julia REPL with `julia` and then call
 
 ```julia
 include("main.jl") 
 ``` 
-or equivalently
+or, equivalently, from the repository root run the following in the terminal
 ```
-julia main.jl
+julia analysis/main.jl
 ```
-to call the two primary analysis scripts `01_compute_scc.jl` and `02_ag_scc_evolution.jl`.
+The first script in `main.jl` activates and instantiates the project environment (`Project.toml`/`Manifest.toml`), so the exact package versions used for the paper are installed automatically on the first run.
 
-# 3. Run Model Function
+Running `main.jl` calls the three primary analysis scripts
+1. `01_epa2023.jl`
+2. `02_compute_scc.jl`
+3. `03_ag_scc_evolution.jl`.
 
-The primary workhorse function is `get_model`, which returns the runnable Mimi model, built off of the default `GIVE` model, and is defined as:
+## The Core `get_model` Function
+
+The workhorse function in this repository is `get_model`, which returns the runnable Mimi model, built off of the default `MimiGIVE` model, and is defined as:
 
 ```julia
 function get_model(;    agriculture_pctile::Symbol = :mid,
@@ -64,19 +77,18 @@ The key arguments for this function are as follows:
         from 2020 onwards, while emissions for CO2, CH4, and N2O will come from
         the MimiRFFSPs component.
 
-- `RFFSPsample` (default to nothing, which will pull the in MimiRFFSPs) - choose
+- `RFFSPsample` (default 6546) - choose
     the sample for which to run the RFF SP. See the RFFSPs component here: 
     https://github.com/rffscghg/MimiRFFSPs.jl. This will default to the same 
     default run (6546) as the RFFSPs component, and is used for the default ypc2017
     parameter in the agriculture component.
 
-
 - `labor_damage_function` (default "Lancet") - specify the damage function to use
     for labor damages, the options are "Lancet" or "ISO"
 
-# 4. Monte Carlo Simulations
+## Monte Carlo Simulations
 
-The `run_mcs` function is the workhorse function for running a Monte Carlo Simulation for this model. It runs a Monte Carlo Simulation mirroring that of the original `GIVE` model, with two additions:
+The `run_mcs` function is the workhorse function for running a Monte Carlo Simulation for this model. It runs a Monte Carlo Simulation mirroring that of the original `MimiGIVE` model, with two additions:
 
 1. For the agriculture component add uncertainty across each of the seven coefficients.
 
@@ -93,7 +105,7 @@ for coef in [1,2,3,4,5,6,7] # seven coefficients defined with an anonymous dimen
 end
 ```
 
-2. For the labor component add a Uniform distribution across all possible GCMs, exclusing the model ensemble which runs the default, non-MCS mode.
+2. For the labor component add a Uniform distribution across all possible GCMs, excluding the model ensemble which runs the default, non-MCS mode.
 
 ```julia
 gcm_options = collect(2:size(load(joinpath(@__DIR__, "..", "data", "dimension_gcm.csv")) |> DataFrame, 1)) # 1 is the ensemble
@@ -141,9 +153,9 @@ The key arguments for this function are as follows:
         into memory problems, data will be streamed out to disk but not saved in memory 
         to the mcs object
 
-# 5. Social Cost of Carbon
+## Social Cost of Carbon
 
-The `compute_scc` function computes the social cost of carbon and mirrors that in the `GIVE` model nearly identically. 
+The `compute_scc` function computes the social cost of carbon and mirrors that in the `MimiGIVE` model nearly identically. 
 
 ```julia
 function compute_scc(m::Model = get_model(); 
@@ -174,4 +186,4 @@ function compute_scc(m::Model = get_model();
 
 We make one addition to the original function with the `compute_labor_country_sccs` Boolean flag. If this is set to `true` we return an additional entry in the `results` dictionary which saves the country-level partial social costs of carbon for the labor sector, including the expected value, individual SCCs, and standard errors.
 
-For examples of how to run the SCC computations and parse the outputs see `analysis/01_compute_scc.jl`.
+For examples of how to run the SCC computations and parse the outputs see `analysis/02_compute_scc.jl`.

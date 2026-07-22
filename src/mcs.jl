@@ -56,7 +56,7 @@ function get_mcs(trials;
                             save_list = save_list,
                         )
 
-    # remove old agriculure component random variables
+    # remove old agriculture component random variables
     for coef in [1,2,3] # three coefficients defined with an anonymous dimension
         for region in ["USA","CAN","WEU","JPK","ANZ","EEU","FSU","MDE","CAM","LAM","SAS","SEA","CHI","MAF","SSA","SIS"] # fund regions for ag
             rv_name = Symbol("rv_gtap_coef$(coef)_$region")

@@ -1,5 +1,6 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
+Pkg.instantiate() # only need to run once per machine to install dependencies
 
 using Mimi, VegaLite, Random, Query, DataFrames, Dates
 
@@ -22,10 +23,10 @@ labor_functions = ["ISO", "Lancet"]
 # Run analysis
 
 @info "Starting epa 2023 analysis at $(now())"
-include("00_epa2023.jl")
+include("01_epa2023.jl")
 
 @info "Starting SCC analysis at $(now())"
-include("01_compute_scc.jl")
+include("02_compute_scc.jl")
 
 @info "Starting ag SCC evolution analysis at $(now())"
-include("02_ag_scc_evolution.jl")
+include("03_ag_scc_evolution.jl")
