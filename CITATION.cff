@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite both the software and the associated paper as below."
+title: "paper-2026-give-labor-ag"
+type: software
+authors:
+  - family-names: Rennels
+    given-names: Lisa
+version: 1.0.0
+date-released: "2026-07-21"
+repository-code: "https://github.com/lrennels/paper-2026-give-labor-ag"
+license: MIT
+abstract: >
+  This repository holds scripts and analysis to modify the Greenhouse
+  Gas Impact Valuation Estimator (GIVE) model (Rennert et al., 2022)
+  with (1) an updated agriculture sector damage function and (2) a
+  labor sector damage function for publication in Moore et al. (2026).
+preferred-citation:
+  type: article
+  title: "TITLE PLACEHOLDER - Moore et al. 2026"
+  authors:
+    - family-names: Moore
+      given-names: FIRSTNAME PLACEHOLDER
+    - family-names: Rennels
+      given-names: Lisa
+  year: 2026
+  journal: "JOURNAL PLACEHOLDER"
+  doi: "10.XXXX/PLACEHOLDER"
